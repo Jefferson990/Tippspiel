@@ -277,6 +277,13 @@ tr:hover td{background:var(--s2)}
 .empty{text-align:center;padding:44px 20px;color:var(--txt2)}
 .empty h3{font-size:20px;font-weight:700;margin-bottom:6px}
 .info-bar{background:var(--acc-light);border:1px solid rgba(232,168,0,.25);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--acc-dark);font-weight:500}
+.submit-bar{background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:18px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;box-shadow:var(--shadow)}
+.submit-bar.submitted{background:#f1f8e9;border-color:rgba(46,125,50,.25)}
+.btn-submit{background:var(--green);border:none;border-radius:9px;color:#fff;cursor:pointer;font-size:15px;font-weight:700;padding:12px 28px;transition:all .15s;white-space:nowrap;box-shadow:0 2px 8px rgba(46,125,50,.25)}
+.btn-submit:hover{background:#1b5e20;transform:translateY(-1px);box-shadow:0 4px 14px rgba(46,125,50,.3)}
+.btn-submit:disabled{background:var(--b2);color:var(--txt3);cursor:not-allowed;transform:none;box-shadow:none}
+.submitted-badge{display:inline-flex;align-items:center;gap:7px;background:var(--green-light);border:1.5px solid rgba(46,125,50,.3);border-radius:10px;padding:9px 16px;font-size:13px;font-weight:700;color:var(--green)}
+.week-locked-overlay{background:#f9fbe7;border:2px solid rgba(46,125,50,.2);border-radius:10px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:12px;font-size:13px;font-weight:600;color:var(--green)}
 
 @media(max-width:700px){
   .hi{padding:0 12px}.ltxt{font-size:16px}
@@ -686,7 +693,7 @@ KO_RUNDEN.forEach(r=>r.spiele.forEach(s=>ALL_KO.push({...s,runde:r.id})));
 // STATE
 // ============================================================
 let CU=null,adminIn=false;
-let tCache={},ergCache={},koCache={},koTCache={};
+let tCache={},ergCache={},koCache={},koTCache={},submitCache={};
 let activeW='W1',admW='W1',curTab='gesamt';
 
 // ============================================================
@@ -868,12 +875,37 @@ function buildWsel(elId,active,cb){
   const el=document.getElementById(elId);
   el.innerHTML=WOCHEN.map(w=>{const lk=isWLocked(w.id);return`<button class="wb${w.id===active?' active':''}${lk?' locked':''}" onclick="(${cb.toString()})('${w.id}')">${w.label}<br><small style="font-size:10px;opacity:.7">${w.dates}</small></button>`;}).join('');
 }
-async function loadTipps(){if(!CU)return;const[mt,erg]=await Promise.all([dbGet('tipps/'+CU.nick),dbGet('ergebnisse')]);tCache=mt||{};ergCache=erg||{};buildWsel('wsel',activeW,w=>{activeW=w;renderWoche();});renderWoche();}
+async function loadTipps(){
+  if(!CU)return;
+  const[mt,erg,sub]=await Promise.all([
+    dbGet('tipps/'+CU.nick),
+    dbGet('ergebnisse'),
+    dbGet('tipp_submit/'+CU.nick)
+  ]);
+  tCache=mt||{};
+  ergCache=erg||{};
+  submitCache=sub||{};
+  buildWsel('wsel',activeW,w=>{activeW=w;renderWoche();});
+  renderWoche();
+}
 function renderWoche(){
-  const w=WOCHEN.find(x=>x.id===activeW);const locked=isWLocked(activeW);
+  const w=WOCHEN.find(x=>x.id===activeW);
+  const ergLocked=isWLocked(activeW);
+  const submitted=!!(submitCache[activeW]&&submitCache[activeW].ts);
+  // Tipp-Eingabe gesperrt wenn: Schein abgegeben ODER Ergebnisse eingetragen
+  const locked=submitted||ergLocked;
   const spiele=ALL_GP.filter(s=>s.dt>=w.von&&s.dt<=w.bis);
-  document.getElementById('winfo').innerHTML=`<span class="wi-lbl">Zeitraum</span><span class="wi-val">${w.dates}</span><span class="wi-lbl" style="margin-left:8px">Spiele</span><span class="wi-val">${spiele.length}</span><span class="wi-st ${locked?'st-locked':'st-open'}">${locked?'🔒 Gesperrt':'✏️ Offen zum Tippen'}</span>`;
-  let filled=0;spiele.forEach(s=>{const t=tCache[s.id]||{};if(t.h!==''&&t.h!==undefined&&t.g!==''&&t.g!==undefined)filled++;});
+
+  // Status
+  let stCls, stTxt;
+  if(ergLocked){ stCls='st-locked'; stTxt='🔒 Ergebnisse eingetragen'; }
+  else if(submitted){ stCls='st-locked'; stTxt='✅ Tippschein abgegeben'; }
+  else { stCls='st-open'; stTxt='✏️ Offen zum Tippen'; }
+
+  document.getElementById('winfo').innerHTML=`<span class="wi-lbl">Zeitraum</span><span class="wi-val">${w.dates}</span><span class="wi-lbl" style="margin-left:8px">Spiele</span><span class="wi-val">${spiele.length}</span><span class="wi-st ${stCls}">${stTxt}</span>`;
+
+  let filled=0;
+  spiele.forEach(s=>{const t=tCache[s.id]||{};if(t.h!==''&&t.h!==undefined&&t.g!==''&&t.g!==undefined)filled++;});
   document.getElementById('pbar').style.display='';
   document.getElementById('pb-fill').style.width=spiele.length?Math.round(filled/spiele.length*100)+'%':'0%';
   document.getElementById('pb-ct').textContent=`${filled}/${spiele.length}`;
@@ -899,11 +931,46 @@ function renderWoche(){
         <div class="sc-foot">${edH}${sbH}</div></div>`;
     });html+='</div>';
   });
-  document.getElementById('tipps-content').innerHTML=html||'<div class="empty"><h3>Keine Spiele</h3></div>';
+  // Submit Bar bauen
+  let submitHtml='';
+  if(ergLocked){
+    submitHtml=`<div class="week-locked-overlay">
+      <span style="font-size:22px">🔒</span>
+      <div><div>Ergebnisse bereits eingetragen</div>
+      <div style="font-size:11px;font-weight:400;color:var(--txt2);margin-top:2px">Diese Woche kann nicht mehr getippt werden</div></div>
+    </div>`;
+  } else if(submitted){
+    const ts=new Date(submitCache[activeW].ts).toLocaleString('de-DE');
+    submitHtml=`<div class="submit-bar submitted">
+      <div>
+        <div class="submitted-badge">✅ Tippschein abgegeben!</div>
+        <div style="font-size:11px;color:var(--txt2);margin-top:6px">Abgegeben am: <strong>${ts}</strong> &nbsp;·&nbsp; ${filled} von ${spiele.length} Spielen getippt</div>
+        <div style="font-size:11px;color:var(--red);margin-top:3px;font-weight:600">🔒 Keine Änderungen mehr möglich</div>
+      </div>
+    </div>`;
+  } else {
+    const missing=spiele.length-filled;
+    submitHtml=`<div class="submit-bar">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:var(--txt)">Tippschein abgeben</div>
+        <div style="font-size:12px;color:var(--txt2);margin-top:3px">${filled} von ${spiele.length} Spielen getippt${missing>0?' &nbsp;·&nbsp; <span style="color:var(--red)">'+missing+' noch offen</span>':' &nbsp;·&nbsp; <span style="color:var(--green)">Alle getippt ✓</span>'}</div>
+        <div style="font-size:11px;color:var(--txt3);margin-top:3px">⚠️ Nach Abgabe sind keine Änderungen mehr möglich!</div>
+      </div>
+      <button class="btn-submit" onclick="submitTippschein('${activeW}')"${filled===0?' disabled':''}>
+        📋 Tippschein abgeben ${filled===spiele.length?'✓':'('+filled+'/'+spiele.length+')'}
+      </button>
+    </div>`;
+  }
+
+  // Submit bar vor die Spielkarten setzen
+  const contentEl=document.getElementById('tipps-content');
+  contentEl.innerHTML=(submitHtml)+(html||'<div class="empty"><h3>Keine Spiele</h3></div>');
   buildWsel('wsel',activeW,w=>{activeW=w;renderWoche();});
 }
 let tSt={};
 function onTipp(inp){
+  // Gesperrt wenn Schein bereits abgegeben
+  if(submitCache[activeW]&&submitCache[activeW].ts){ inp.value=inp.defaultValue; return; }
   const sid=inp.dataset.sid,side=inp.dataset.side;const val=inp.value===''?'':Math.max(0,parseInt(inp.value)||0);
   if(inp.value!==''&&val!==parseInt(inp.value))inp.value=val;
   if(!tCache[sid])tCache[sid]={h:'',g:''};tCache[sid][side]=val;
@@ -921,30 +988,128 @@ async function saveTipp(sid){
   }catch{toast('❌ Speichern fehlgeschlagen','er');}
 }
 
+async function submitTippschein(wId){
+  if(!CU)return;
+  const w=WOCHEN.find(x=>x.id===wId);
+  const spiele=ALL_GP.filter(s=>s.dt>=w.von&&s.dt<=w.bis);
+  const filled=spiele.filter(s=>{const t=tCache[s.id]||{};return t.h!==''&&t.h!==undefined&&t.g!==''&&t.g!==undefined;}).length;
+
+  // Bestätigung
+  const msg=filled<spiele.length
+    ? `Du hast nur ${filled} von ${spiele.length} Spielen getippt.\n\n${spiele.length-filled} Spiele sind noch offen!\n\nTrotzdem abgeben? Danach sind KEINE Änderungen mehr möglich!`
+    : `Alle ${spiele.length} Spiele getippt!\n\nTippschein für ${w.label} jetzt abgeben?\nDanach sind KEINE Änderungen mehr möglich!`;
+
+  if(!confirm(msg))return;
+
+  // In Firebase speichern
+  const submitData={
+    ts: new Date().toISOString(),
+    woche: wId,
+    filled: filled,
+    total: spiele.length
+  };
+  await dbUpd('tipp_submit/'+CU.nick, {[wId]: submitData});
+  submitCache[wId]=submitData;
+
+  toast('✅ Tippschein für '+w.label+' abgegeben!','ok');
+  renderWoche();
+}
+
 // ============================================================
 // KO TIPPS
 // ============================================================
-async function loadKOTipps(){if(!CU)return;const[koE,koT]=await Promise.all([dbGet('ko_ergebnisse'),dbGet('ko_tipps/'+CU.nick)]);koCache=koE||{};koTCache=koT||{};renderKOTipps();}
+async function loadKOTipps(){
+  if(!CU)return;
+  const[koE,koT,sub]=await Promise.all([
+    dbGet('ko_ergebnisse'),
+    dbGet('ko_tipps/'+CU.nick),
+    dbGet('tipp_submit/'+CU.nick)
+  ]);
+  koCache=koE||{};
+  koTCache=koT||{};
+  submitCache=sub||{};
+  renderKOTipps();
+}
+
 function renderKOTipps(){
   let html='';
   KO_RUNDEN.forEach(runde=>{
-    html+=`<div class="ko-section"><div class="ko-title">${runde.icon} ${runde.label}</div><div class="ko-grid">`;
+    const rundId='KO_'+runde.id;
+    const submitted=!!(submitCache[rundId]&&submitCache[rundId].ts);
+    // Runde gesperrt wenn: Schein abgegeben ODER mind. 1 Sieger eingetragen
+    const rundeLocked=submitted||runde.spiele.some(s=>koCache[s.id]&&koCache[s.id].winner);
+
+    // Zähle tippbare Spiele (teams bekannt, kein winner noch)
+    const tippbar=runde.spiele.filter(s=>{const ko=koCache[s.id]||{};return ko.team1&&ko.team2&&!ko.winner;});
+    const getippt=tippbar.filter(s=>koTCache[s.id]);
+
+    html+=`<div class="ko-section">
+      <div class="ko-title">${runde.icon} ${runde.label}</div>`;
+
+    // Submit Bar pro Runde
+    if(runde.spiele.some(s=>{const ko=koCache[s.id]||{};return ko.winner;})){
+      // Mindestens 1 Sieger eingetragen → ganz abgeschlossen
+      html+=`<div class="week-locked-overlay" style="margin-bottom:12px">
+        <span style="font-size:20px">🏆</span>
+        <div><div>Runde abgeschlossen — Ergebnisse eingetragen</div>
+        <div style="font-size:11px;font-weight:400;color:var(--txt2);margin-top:1px">Keine Tipps mehr möglich</div></div>
+      </div>`;
+    } else if(tippbar.length===0){
+      // Noch keine Teams bekannt
+      html+=`<div style="background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--txt3)">
+        ⏳ Teams werden noch eingetragen — sobald bekannt kannst du tippen
+      </div>`;
+    } else if(submitted){
+      const ts=new Date(submitCache[rundId].ts).toLocaleString('de-DE');
+      html+=`<div class="submit-bar submitted" style="margin-bottom:12px">
+        <div>
+          <div class="submitted-badge">✅ Tippschein abgegeben!</div>
+          <div style="font-size:11px;color:var(--txt2);margin-top:5px">Abgegeben am: <strong>${ts}</strong> · ${getippt.length}/${tippbar.length} Sieger getippt</div>
+          <div style="font-size:11px;color:var(--red);margin-top:2px;font-weight:600">🔒 Keine Änderungen mehr möglich</div>
+        </div>
+      </div>`;
+    } else if(tippbar.length>0){
+      const missing=tippbar.length-getippt.length;
+      html+=`<div class="submit-bar" style="margin-bottom:12px">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--txt)">Tippschein abgeben — ${runde.label}</div>
+          <div style="font-size:12px;color:var(--txt2);margin-top:3px">${getippt.length} von ${tippbar.length} Spielen getippt${missing>0?' · <span style="color:var(--red)">'+missing+' noch offen</span>':' · <span style="color:var(--green)">Alle getippt ✓</span>'}</div>
+          <div style="font-size:11px;color:var(--txt3);margin-top:2px">⚠️ Nach Abgabe sind keine Änderungen mehr möglich!</div>
+        </div>
+        <button class="btn-submit" onclick="submitKOSchein('${rundId}','${runde.label}')"${getippt.length===0?' disabled':''}>
+          📋 Schein abgeben ${getippt.length===tippbar.length?'✓':'('+getippt.length+'/'+tippbar.length+')'}
+        </button>
+      </div>`;
+    }
+
+    html+=`<div class="ko-grid">`;
     runde.spiele.forEach(s=>{
-      const ko=koCache[s.id]||{};const t1=ko.team1||null,t2=ko.team2||null,winner=ko.winner||null,myT=koTCache[s.id]||null;
-      const hasBoth=t1&&t2;const isLocked=!!winner;
-      html+=`<div class="ko-card"><div class="ko-meta"><span>${s.label} · ${s.d} · ${s.o}</span>${isLocked?'<span style="color:var(--green);font-weight:600;font-size:10px">✓ Abgeschlossen</span>':''}</div><div class="ko-teams">`;
+      const ko=koCache[s.id]||{};
+      const t1=ko.team1||null,t2=ko.team2||null,winner=ko.winner||null,myT=koTCache[s.id]||null;
+      const hasBoth=t1&&t2;
+      const isLocked=!!winner||rundeLocked;
+      html+=`<div class="ko-card${isLocked?' locked':''}">
+        <div class="ko-meta">
+          <span>${s.label} · ${s.d} · ${s.o}</span>
+          ${winner?'<span style="color:var(--green);font-weight:600;font-size:10px">✓ Abgeschlossen</span>':submitted?'<span style="color:var(--txt3);font-size:10px">🔒 Abgegeben</span>':''}
+        </div>
+        <div class="ko-teams">`;
       if(!hasBoth){
         html+=`<div class="ko-team tbd"><span class="ko-team-name" style="color:var(--txt3);font-style:italic;font-size:13px">Noch nicht bekannt</span></div><div class="ko-vs">VS</div><div class="ko-team tbd"><span class="ko-team-name" style="color:var(--txt3);font-style:italic;font-size:13px">Noch nicht bekannt</span></div>`;
       } else {
         [t1,t2].forEach((team,idx)=>{
           const isSel=myT===team,isWin=winner===team,isLose=winner&&winner!==team;
-          let cls='ko-team';if(isWin)cls+=' winner';else if(isLose)cls+=' loser';else if(isSel)cls+=' selected';
-          html+=`<div class="${cls}" ${(!isLocked&&hasBoth)?`onclick="selKO('${s.id}','${team}')"`:''}>${flagImg(team,'flag-lg')}<span class="ko-team-name">${team}</span><span class="ko-check">${isWin?'✓ Sieger':isSel?'✓ Mein Tipp':''}</span></div>`;
+          let cls='ko-team';
+          if(isWin)cls+=' winner';
+          else if(isLose)cls+=' loser';
+          else if(isSel)cls+=' selected';
+          const clickable=!isLocked&&hasBoth;
+          html+=`<div class="${cls}" ${clickable?`onclick="selKO('${s.id}','${team}','${rundId}')"`:''}>${flagImg(team,'flag-lg')}<span class="ko-team-name">${team}</span><span class="ko-check">${isWin?'✓ Sieger':isSel?'✓ Mein Tipp':''}</span></div>`;
           if(idx===0)html+=`<div class="ko-vs">VS</div>`;
         });
       }
       html+=`</div>`;
-      if(myT&&hasBoth&&!winner)html+=`<div style="margin-top:6px;font-size:11px;color:var(--txt2);text-align:right">Tipp: <strong style="color:var(--acc-dark)">${myT}</strong></div>`;
+      if(myT&&hasBoth&&!winner&&!submitted)html+=`<div style="margin-top:6px;font-size:11px;color:var(--txt2);text-align:right">Tipp: <strong style="color:var(--acc-dark)">${myT}</strong></div>`;
       if(winner&&myT){const ok=myT===winner;html+=`<div class="ko-pts"><span class="sbadge ${ok?'sb-ex':'sb-wr'}">${ok?'⭐ Richtig +2':'✗ Falsch +0'}</span></div>`;}
       html+=`</div>`;
     });
@@ -952,10 +1117,44 @@ function renderKOTipps(){
   });
   document.getElementById('ko-content').innerHTML=html;
 }
-async function selKO(sid,team){
-  if(!CU)return;koTCache[sid]=team;
+async function selKO(sid, team, rundId){
+  if(!CU)return;
+  // Block if submitted
+  if(rundId && submitCache[rundId] && submitCache[rundId].ts){
+    toast('🔒 Schein bereits abgegeben!','er');
+    return;
+  }
+  koTCache[sid]=team;
   await dbUpd('ko_tipps/'+CU.nick,{[sid]:team});
-  renderKOTipps();toast('✅ Tipp: '+team,'ok');
+  renderKOTipps();
+  toast('✅ Tipp: '+team,'ok');
+}
+
+async function submitKOSchein(rundId, rundLabel){
+  if(!CU)return;
+  // Find runde
+  const runde=KO_RUNDEN.find(r=>'KO_'+r.id===rundId);
+  if(!runde)return;
+  const tippbar=runde.spiele.filter(s=>{const ko=koCache[s.id]||{};return ko.team1&&ko.team2&&!ko.winner;});
+  const getippt=tippbar.filter(s=>koTCache[s.id]);
+  const missing=tippbar.length-getippt.length;
+
+  const msg=missing>0
+    ? `Du hast nur ${getippt.length} von ${tippbar.length} Spielen getippt.\n\n${missing} Spiel(e) noch offen!\n\nTrotzdem abgeben? Danach sind KEINE Änderungen mehr möglich!`
+    : `Alle ${tippbar.length} Spiele getippt!\n\nTippschein für ${rundLabel} jetzt abgeben?\nDanach sind KEINE Änderungen mehr möglich!`;
+
+  if(!confirm(msg))return;
+
+  const submitData={
+    ts: new Date().toISOString(),
+    runde: rundId,
+    filled: getippt.length,
+    total: tippbar.length
+  };
+  await dbUpd('tipp_submit/'+CU.nick, {[rundId]: submitData});
+  submitCache[rundId]=submitData;
+  toast('✅ Tippschein für '+rundLabel+' abgegeben!','ok');
+  renderKOTipps();
 }
 
 // ============================================================
