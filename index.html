@@ -276,6 +276,19 @@ tr:hover td{background:var(--s2)}
 
 .empty{text-align:center;padding:44px 20px;color:var(--txt2)}
 .empty h3{font-size:20px;font-weight:700;margin-bottom:6px}
+.dd-item{width:100%;background:transparent;border:none;border-radius:8px;color:var(--txt);cursor:pointer;font-size:13px;font-weight:500;padding:9px 12px;text-align:left;transition:background .12s;display:flex;align-items:center;gap:8px}
+.dd-item:hover{background:var(--s2)}
+.verlauf-modal{position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(4px);z-index:2000;display:none;align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto}
+.verlauf-modal.open{display:flex}
+.verlauf-box{background:var(--s1);border:1px solid var(--b1);border-radius:16px;width:100%;max-width:680px;box-shadow:0 20px 60px rgba(0,0,0,.15);margin:auto}
+.verlauf-header{padding:18px 22px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:16px 16px 0 0}
+.verlauf-body{padding:20px 22px}
+.schein-block{background:var(--s2);border:1px solid var(--b1);border-radius:10px;margin-bottom:14px;overflow:hidden}
+.schein-header{padding:12px 16px;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:background .12s}
+.schein-header:hover{background:var(--acc-light)}
+.schein-spiele{padding:12px 16px}
+.schein-spiel-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--b1);font-size:13px}
+.schein-spiel-row:last-child{border-bottom:none}
 .info-bar{background:var(--acc-light);border:1px solid rgba(232,168,0,.25);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--acc-dark);font-weight:500}
 .submit-bar{background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:18px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;box-shadow:var(--shadow)}
 .submit-bar.submitted{background:#f1f8e9;border-color:rgba(46,125,50,.25)}
@@ -321,11 +334,29 @@ tr:hover td{background:var(--s2)}
       <button class="nb" onclick="showPage('ko',this)">🥊 KO-Runde</button>
       <button class="nb adm" id="adm-btn" style="display:none" onclick="showPage('admin',this)">🔧 Admin</button>
     </nav>
-    <div id="uinfo" style="display:none;margin-left:auto">
-      <div class="upill" onclick="logout()">
+    <div id="uinfo" style="display:none;margin-left:auto;position:relative">
+      <div class="upill" onclick="toggleUserMenu()" id="user-pill-btn">
         <div class="uav" id="uav">?</div>
         <span id="unick"></span>
-        <span style="color:var(--txt3);font-size:10px;margin-left:2px">▾</span>
+        <span style="color:var(--txt3);font-size:10px;margin-left:2px" id="upill-arrow">▾</span>
+      </div>
+      <!-- Dropdown Menu -->
+      <div id="user-dropdown" style="display:none;position:absolute;top:calc(100% + 8px);right:0;background:var(--s1);border:1px solid var(--b1);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.12);min-width:220px;z-index:999;overflow:hidden">
+        <!-- User Info Header -->
+        <div style="padding:14px 16px;background:var(--s2);border-bottom:1px solid var(--b1)">
+          <div style="font-size:13px;font-weight:700;color:var(--txt)" id="dd-name"></div>
+          <div style="font-size:11px;color:var(--txt2);margin-top:2px" id="dd-shop"></div>
+        </div>
+        <!-- Menu Items -->
+        <div style="padding:6px">
+          <button onclick="openTippscheinVerlauf()" class="dd-item">
+            📋 Meine Tippscheine
+          </button>
+          <div style="height:1px;background:var(--b1);margin:4px 0"></div>
+          <button onclick="closeUserMenu();logout()" class="dd-item" style="color:var(--red)">
+            🚪 Abmelden
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -488,6 +519,22 @@ tr:hover td{background:var(--s2)}
     </div>
   </div>
 </main>
+
+<!-- Tippschein Verlauf Modal -->
+<div class="verlauf-modal" id="verlauf-modal" onclick="closeVerlaufOnBg(event)">
+  <div class="verlauf-box">
+    <div class="verlauf-header">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:var(--txt)">📋 Meine Tippscheine</div>
+        <div style="font-size:11px;color:var(--txt2);margin-top:2px" id="verlauf-sub"></div>
+      </div>
+      <button onclick="closeVerlauf()" style="background:var(--s3);border:none;border-radius:8px;cursor:pointer;font-size:18px;padding:6px 10px;color:var(--txt2);transition:all .15s" onmouseover="this.style.background='var(--red-light)';this.style.color='var(--red)'" onmouseout="this.style.background='var(--s3)';this.style.color='var(--txt2)'">✕</button>
+    </div>
+    <div class="verlauf-body" id="verlauf-body">
+      <div class="empty"><h3>Lade...</h3></div>
+    </div>
+  </div>
+</div>
 
 <div id="toast"></div>
 
@@ -749,11 +796,13 @@ function loginUser(nick,ud){
   CU={nick,...ud};localStorage.setItem('hetec_nick',nick);
   document.getElementById('unick').textContent=nick;
   document.getElementById('uav').textContent=nick[0].toUpperCase();
+  document.getElementById('dd-name').textContent=ud.vorname+' '+ud.nachname;
+  document.getElementById('dd-shop').textContent='🏪 '+(ud.shop||'—');
   document.getElementById('mnav').style.display='';
   document.getElementById('uinfo').style.display='';
   showPage('tabelle',document.querySelector('.nb'));loadTabelle();
 }
-function logout(){if(!confirm('Abmelden?'))return;CU=null;adminIn=false;localStorage.removeItem('hetec_nick');document.getElementById('adm-btn').style.display='none';document.getElementById('adm-content').style.display='none';document.getElementById('adm-login-wrap').style.display='';showAuthPage();}
+function logout(){closeUserMenu();if(!confirm('Abmelden?'))return;CU=null;adminIn=false;localStorage.removeItem('hetec_nick');document.getElementById('adm-btn').style.display='none';document.getElementById('adm-content').style.display='none';document.getElementById('adm-login-wrap').style.display='';showAuthPage();}
 function showErr(el,msg){el.textContent=msg;el.classList.add('show');}
 
 // ============================================================
@@ -905,7 +954,7 @@ function renderWoche(){
   document.getElementById('winfo').innerHTML=`<span class="wi-lbl">Zeitraum</span><span class="wi-val">${w.dates}</span><span class="wi-lbl" style="margin-left:8px">Spiele</span><span class="wi-val">${spiele.length}</span><span class="wi-st ${stCls}">${stTxt}</span>`;
 
   let filled=0;
-  spiele.forEach(s=>{const t=tCache[s.id]||{};if(t.h!==''&&t.h!==undefined&&t.g!==''&&t.g!==undefined)filled++;});
+  spiele.forEach(s=>{const t=tCache[s.id]||{};if(t.h!==''&&t.h!==undefined&&t.h!==null&&t.g!==''&&t.g!==undefined&&t.g!==null)filled++;});
   document.getElementById('pbar').style.display='';
   document.getElementById('pb-fill').style.width=spiele.length?Math.round(filled/spiele.length*100)+'%':'0%';
   document.getElementById('pb-ct').textContent=`${filled}/${spiele.length}`;
@@ -956,7 +1005,7 @@ function renderWoche(){
         <div style="font-size:12px;color:var(--txt2);margin-top:3px">${filled} von ${spiele.length} Spielen getippt${missing>0?' &nbsp;·&nbsp; <span style="color:var(--red)">'+missing+' noch offen</span>':' &nbsp;·&nbsp; <span style="color:var(--green)">Alle getippt ✓</span>'}</div>
         <div style="font-size:11px;color:var(--txt3);margin-top:3px">⚠️ Nach Abgabe sind keine Änderungen mehr möglich!</div>
       </div>
-      <button class="btn-submit" onclick="submitTippschein('${activeW}')"${filled===0?' disabled':''}>
+      <button class="btn-submit" onclick="submitTippschein('${activeW}')">
         📋 Tippschein abgeben ${filled===spiele.length?'✓':'('+filled+'/'+spiele.length+')'}
       </button>
     </div>`;
@@ -971,10 +1020,14 @@ let tSt={};
 function onTipp(inp){
   // Gesperrt wenn Schein bereits abgegeben
   if(submitCache[activeW]&&submitCache[activeW].ts){ inp.value=inp.defaultValue; return; }
-  const sid=inp.dataset.sid,side=inp.dataset.side;const val=inp.value===''?'':Math.max(0,parseInt(inp.value)||0);
-  if(inp.value!==''&&val!==parseInt(inp.value))inp.value=val;
-  if(!tCache[sid])tCache[sid]={h:'',g:''};tCache[sid][side]=val;
-  clearTimeout(tSt[sid]);tSt[sid]=setTimeout(()=>saveTipp(sid),700);
+  const sid=inp.dataset.sid,side=inp.dataset.side;
+  // val is '' if empty, otherwise a number (including 0)
+  const val = inp.value==='' ? '' : Math.max(0, parseInt(inp.value)||0);
+  if(inp.value!=='' && val!==parseInt(inp.value)) inp.value=val;
+  if(!tCache[sid]) tCache[sid]={h:'',g:''};
+  tCache[sid][side] = val;
+  clearTimeout(tSt[sid]);
+  tSt[sid]=setTimeout(()=>saveTipp(sid), 600);
 }
 async function saveTipp(sid){
   if(!CU)return;const t=tCache[sid];
@@ -982,7 +1035,7 @@ async function saveTipp(sid){
   try{
     await dbUpd('tipps/'+CU.nick,{[sid]:{h:+t.h,g:+t.g}});
     const spiele=ALL_GP.filter(s=>{const w=WOCHEN.find(x=>x.id===activeW);return s.dt>=w.von&&s.dt<=w.bis;});
-    let f=0;spiele.forEach(s=>{const x=tCache[s.id]||{};if(x.h!==undefined&&x.h!==''&&x.g!==undefined&&x.g!=='')f++;});
+    let f=0;spiele.forEach(s=>{const x=tCache[s.id]||{};if(x.h!==undefined&&x.h!==''&&x.h!==null&&x.g!==undefined&&x.g!==''&&x.g!==null)f++;});
     document.getElementById('pb-fill').style.width=spiele.length?Math.round(f/spiele.length*100)+'%':'0%';
     document.getElementById('pb-ct').textContent=`${f}/${spiele.length}`;
   }catch{toast('❌ Speichern fehlgeschlagen','er');}
@@ -992,7 +1045,7 @@ async function submitTippschein(wId){
   if(!CU)return;
   const w=WOCHEN.find(x=>x.id===wId);
   const spiele=ALL_GP.filter(s=>s.dt>=w.von&&s.dt<=w.bis);
-  const filled=spiele.filter(s=>{const t=tCache[s.id]||{};return t.h!==''&&t.h!==undefined&&t.g!==''&&t.g!==undefined;}).length;
+  const filled=spiele.filter(s=>{const t=tCache[s.id]||{};return t.h!==''&&t.h!==undefined&&t.h!==null&&t.g!==''&&t.g!==undefined&&t.g!==null;}).length;
 
   // Bestätigung
   const msg=filled<spiele.length
@@ -1388,6 +1441,214 @@ async function delMit(nick){
 }
 function closeMo(){document.getElementById('edit-mo').classList.remove('open');}
 document.getElementById('edit-mo').addEventListener('click',function(e){if(e.target===this)closeMo();});
+// ============================================================
+// USER DROPDOWN
+// ============================================================
+function toggleUserMenu(){
+  const dd=document.getElementById('user-dropdown');
+  const arrow=document.getElementById('upill-arrow');
+  const isOpen=dd.style.display!=='none';
+  dd.style.display=isOpen?'none':'block';
+  arrow.textContent=isOpen?'▾':'▴';
+}
+function closeUserMenu(){
+  const dd=document.getElementById('user-dropdown');
+  const arrow=document.getElementById('upill-arrow');
+  if(dd){dd.style.display='none';}
+  if(arrow){arrow.textContent='▾';}
+}
+// Close dropdown on outside click
+document.addEventListener('click',function(e){
+  const dd=document.getElementById('user-dropdown');
+  const btn=document.getElementById('user-pill-btn');
+  if(dd&&btn&&!dd.contains(e.target)&&!btn.contains(e.target)){
+    closeUserMenu();
+  }
+});
+
+// ============================================================
+// TIPPSCHEIN VERLAUF
+// ============================================================
+async function openTippscheinVerlauf(){
+  closeUserMenu();
+  if(!CU)return;
+  document.getElementById('verlauf-modal').classList.add('open');
+  document.getElementById('verlauf-sub').textContent=CU.nick+' · '+CU.vorname+' '+CU.nachname;
+  document.getElementById('verlauf-body').innerHTML='<div class="empty"><h3>Lade...</h3></div>';
+
+  // Load all data
+  const[sub,mt,koT,erg,koE]=await Promise.all([
+    dbGet('tipp_submit/'+CU.nick),
+    dbGet('tipps/'+CU.nick),
+    dbGet('ko_tipps/'+CU.nick),
+    dbGet('ergebnisse'),
+    dbGet('ko_ergebnisse')
+  ]);
+
+  const allSub=sub||{};
+  const allTipps=mt||{};
+  const allKoT=koT||{};
+  const allErg=erg||{};
+  const allKoE=koE||{};
+
+  if(Object.keys(allSub).length===0){
+    document.getElementById('verlauf-body').innerHTML=`
+      <div class="empty">
+        <h3>Keine Tippscheine</h3>
+        <p>Du hast noch keinen Tippschein abgegeben.</p>
+      </div>`;
+    return;
+  }
+
+  let html='';
+
+  // GRUPPENPHASE Wochen
+  WOCHEN.forEach(w=>{
+    const s=allSub[w.id];
+    if(!s)return;
+    const ts=new Date(s.ts).toLocaleString('de-DE');
+    const spiele=ALL_GP.filter(sp=>sp.dt>=w.von&&sp.dt<=w.bis);
+    let pts=0,ex=0,te=0,wr=0,open=0;
+
+    html+=`<div class="schein-block">
+      <div class="schein-header" onclick="toggleSchein('${w.id}')">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--txt)">⚽ ${w.label} — Gruppenphase</div>
+          <div style="font-size:11px;color:var(--txt2);margin-top:2px">Abgegeben: ${ts} · ${s.filled||'?'}/${s.total||spiele.length} Spiele getippt</div>
+        </div>
+        <span id="arrow-${w.id}" style="color:var(--txt3);font-size:14px">▾</span>
+      </div>
+      <div id="schein-${w.id}" style="display:none">
+        <div class="schein-spiele">`;
+
+    spiele.forEach(sp=>{
+      const t=allTipps[sp.id]||{};
+      const e=allErg[sp.id]||{};
+      const hasT=t.h!==''&&t.h!==undefined&&t.h!==null&&t.g!==''&&t.g!==undefined&&t.g!==null;
+      const hasE=e.h!==''&&e.h!==undefined&&e.h!==null;
+      let pBadge='';
+      if(hasT&&hasE){
+        const p=ptsGP(t,e);
+        pts+=p;
+        if(p===3){ex++;pBadge='<span class="sbadge sb-ex" style="flex-shrink:0">+3</span>';}
+        else if(p===1){te++;pBadge='<span class="sbadge sb-te" style="flex-shrink:0">+1</span>';}
+        else{wr++;pBadge='<span class="sbadge sb-wr" style="flex-shrink:0">+0</span>';}
+      } else if(!hasT){
+        open++;pBadge='<span style="font-size:10px;color:var(--txt3);flex-shrink:0">nicht getippt</span>';
+      } else {
+        pBadge='<span style="font-size:10px;color:var(--txt3);flex-shrink:0">Ergebnis ausstehend</span>';
+      }
+
+      html+=`<div class="schein-spiel-row">
+        <div style="display:flex;align-items:center;gap:5px;flex:1;min-width:0">
+          ${flagImg(sp.h,'flag-sm')}
+          <span style="font-size:12px;font-weight:600;white-space:nowrap">${sp.h}</span>
+        </div>
+        <div style="background:${hasT?'var(--s1)':'var(--bg2)'};border:1px solid var(--b1);border-radius:6px;padding:3px 8px;font-family:'Bebas Neue',cursive;font-size:18px;white-space:nowrap;min-width:60px;text-align:center;color:${hasT?'var(--txt)':'var(--txt3)'}">${hasT?t.h+' : '+t.g:'– : –'}</div>
+        <div style="display:flex;align-items:center;gap:5px;flex:1;min-width:0;justify-content:flex-end">
+          <span style="font-size:12px;font-weight:600;white-space:nowrap">${sp.g}</span>
+          ${flagImg(sp.g,'flag-sm')}
+        </div>
+        ${hasE?`<div style="font-size:10px;color:var(--txt3);white-space:nowrap;flex-shrink:0">(${e.h}:${e.g})</div>`:''}
+        ${pBadge}
+      </div>`;
+    });
+
+    html+=`</div>
+        <div style="padding:10px 16px;background:var(--acc-light);border-top:1px solid var(--b1);display:flex;gap:16px;font-size:12px;font-weight:600">
+          <span style="color:var(--acc-dark)">Punkte: ${pts}</span>
+          <span style="color:var(--green)">✓ ${ex} Exakt</span>
+          <span style="color:var(--blue)">~ ${te} Tendenz</span>
+          <span style="color:var(--red)">✗ ${wr} Falsch</span>
+          ${open>0?`<span style="color:var(--txt3)">${open} nicht getippt</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  });
+
+  // KO RUNDEN
+  KO_RUNDEN.forEach(runde=>{
+    const rundId='KO_'+runde.id;
+    const s=allSub[rundId];
+    if(!s)return;
+    const ts=new Date(s.ts).toLocaleString('de-DE');
+    const tippbar=runde.spiele.filter(sp=>{const ko=allKoE[sp.id]||{};return ko.team1&&ko.team2;});
+    let kopts=0,kok=0;
+
+    html+=`<div class="schein-block">
+      <div class="schein-header" onclick="toggleSchein('${rundId}')">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--txt)">${runde.icon} ${runde.label}</div>
+          <div style="font-size:11px;color:var(--txt2);margin-top:2px">Abgegeben: ${ts} · ${s.filled||'?'}/${s.total||tippbar.length} Sieger getippt</div>
+        </div>
+        <span id="arrow-${rundId}" style="color:var(--txt3);font-size:14px">▾</span>
+      </div>
+      <div id="schein-${rundId}" style="display:none">
+        <div class="schein-spiele">`;
+
+    runde.spiele.forEach(sp=>{
+      const ko=allKoE[sp.id]||{};
+      const myT=allKoT[sp.id]||null;
+      const t1=ko.team1||null,t2=ko.team2||null,winner=ko.winner||null;
+      const hasBoth=t1&&t2;
+      let pBadge='';
+      if(!hasBoth){
+        pBadge='<span style="font-size:10px;color:var(--txt3);flex-shrink:0">Teams noch offen</span>';
+      } else if(!myT){
+        pBadge='<span style="font-size:10px;color:var(--txt3);flex-shrink:0">nicht getippt</span>';
+      } else if(winner){
+        const ok=myT===winner;
+        if(ok)kopts+=2;
+        kok+=(ok?1:0);
+        pBadge=ok?'<span class="sbadge sb-ex" style="flex-shrink:0">⭐ +2</span>':'<span class="sbadge sb-wr" style="flex-shrink:0">✗ +0</span>';
+      } else {
+        pBadge='<span style="font-size:10px;color:var(--txt2);flex-shrink:0">Ergebnis ausstehend</span>';
+      }
+
+      html+=`<div class="schein-spiel-row">
+        <div style="display:flex;align-items:center;gap:5px;flex:1;min-width:0">
+          ${hasBoth?flagImg(t1,'flag-sm'):''}
+          <span style="font-size:12px;font-weight:600">${hasBoth?t1:'?'}</span>
+          <span style="color:var(--txt3);font-size:10px">vs</span>
+          <span style="font-size:12px;font-weight:600">${hasBoth?t2:'?'}</span>
+          ${hasBoth?flagImg(t2,'flag-sm'):''}
+        </div>
+        <div style="font-size:12px;font-weight:700;color:var(--acc-dark);white-space:nowrap;flex-shrink:0">
+          ${myT?'Tipp: '+myT:'—'}
+        </div>
+        ${winner?`<div style="font-size:10px;color:var(--txt3);white-space:nowrap;flex-shrink:0">(Sieger: ${winner})</div>`:''}
+        ${pBadge}
+      </div>`;
+    });
+
+    html+=`</div>
+        <div style="padding:10px 16px;background:var(--acc-light);border-top:1px solid var(--b1);display:flex;gap:16px;font-size:12px;font-weight:600">
+          <span style="color:var(--acc-dark)">Punkte: ${kopts}</span>
+          <span style="color:var(--green)">⭐ ${kok} Richtig</span>
+        </div>
+      </div>
+    </div>`;
+  });
+
+  document.getElementById('verlauf-body').innerHTML=html||'<div class="empty"><h3>Keine Tippscheine</h3></div>';
+}
+
+function toggleSchein(id){
+  const el=document.getElementById('schein-'+id);
+  const arr=document.getElementById('arrow-'+id);
+  if(!el)return;
+  const open=el.style.display!=='none';
+  el.style.display=open?'none':'block';
+  if(arr)arr.textContent=open?'▾':'▴';
+}
+
+function closeVerlauf(){
+  document.getElementById('verlauf-modal').classList.remove('open');
+}
+function closeVerlaufOnBg(e){
+  if(e.target===document.getElementById('verlauf-modal'))closeVerlauf();
+}
+
 let tt;
 function toast(msg,type=''){const el=document.getElementById('toast');el.textContent=msg;el.className='show '+type;clearTimeout(tt);tt=setTimeout(()=>el.className='',2800);}
 </script>
