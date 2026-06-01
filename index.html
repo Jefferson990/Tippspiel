@@ -977,47 +977,157 @@ async function saveAdmErg(sid){
 
 async function loadAdmKO(){const koE=await dbGet('ko_ergebnisse')||{};koCache=koE;renderAdmKO();}
 let admWinSel={};
+
+// Vollständiger Turnierbaum laut FIFA-Spielplan
+const BRACKET=[
+  {
+    runde:'⚔️ Achtelfinale',
+    farbe:'#1565c0',
+    spiele:[
+      {id:'AF1',label:'AF1',d:'Sa 04.07. 19:00',o:'Houston (USA)',        info:'Sieger SF1 : Sieger SF4'},
+      {id:'AF2',label:'AF2',d:'Sa 04.07. 23:00',o:'Philadelphia (USA)',   info:'Sieger SF3 : Sieger SF6'},
+      {id:'AF3',label:'AF3',d:'So 05.07. 22:00',o:'New York/NJ (USA)',    info:'Sieger SF2 : Sieger SF5'},
+      {id:'AF4',label:'AF4',d:'Mo 06.07. 12:00',o:'Mexiko-Stadt (MEX)',   info:'Sieger SF7 : Sieger SF8'},
+      {id:'AF5',label:'AF5',d:'Mo 06.07. 21:00',o:'Dallas (USA)',         info:'Sieger SF11 : Sieger SF12'},
+      {id:'AF6',label:'AF6',d:'Di 07.07. 02:00',o:'Seattle (USA)',        info:'Sieger SF9 : Sieger SF10'},
+      {id:'AF7',label:'AF7',d:'Di 07.07. 18:00',o:'Atlanta (USA)',        info:'Sieger SF14 : Sieger SF15'},
+      {id:'AF8',label:'AF8',d:'Di 07.07. 22:00',o:'Vancouver (KAN)',      info:'Sieger SF13 : Sieger SF16'},
+    ]
+  },
+  {
+    runde:'🏅 Viertelfinale',
+    farbe:'#2e7d32',
+    spiele:[
+      {id:'VF1',label:'VF1',d:'Do 09.07. 22:00',o:'Boston (USA)',         info:'Sieger AF1 : Sieger AF2'},
+      {id:'VF2',label:'VF2',d:'Fr 10.07. 21:00',o:'Los Angeles (USA)',    info:'Sieger AF5 : Sieger AF6'},
+      {id:'VF3',label:'VF3',d:'Sa 11.07. 23:00',o:'Miami (USA)',          info:'Sieger AF3 : Sieger AF4'},
+      {id:'VF4',label:'VF4',d:'So 12.07. 03:00',o:'Kansas City (USA)',    info:'Sieger AF7 : Sieger AF8'},
+    ]
+  },
+  {
+    runde:'🔥 Halbfinale',
+    farbe:'#e65100',
+    spiele:[
+      {id:'HF1',label:'Halbfinale 1',d:'Di 14.07. 21:00',o:'Dallas (USA)',   info:'Sieger VF1 : Sieger VF2'},
+      {id:'HF2',label:'Halbfinale 2',d:'Mi 15.07. 21:00',o:'Atlanta (USA)',  info:'Sieger VF3 : Sieger VF4'},
+    ]
+  },
+  {
+    runde:'🥉 Spiel um Platz 3',
+    farbe:'#6d4c41',
+    spiele:[
+      {id:'TP1',label:'3. Platz',d:'Sa 18.07. 23:00',o:'Miami (USA)',        info:'Verlierer HF1 : Verlierer HF2'},
+    ]
+  },
+  {
+    runde:'🏆 FINALE',
+    farbe:'#b71c1c',
+    spiele:[
+      {id:'FIN1',label:'FINALE',d:'So 19.07. 21:00',o:'New York/NJ (USA)',   info:'Sieger HF1 : Sieger HF2'},
+    ]
+  },
+];
+
 function renderAdmKO(){
   const allTeams=Object.keys(FC);
   let html=`<datalist id="tl">${allTeams.map(t=>`<option value="${t}">`).join('')}</datalist>`;
-  KO_RUNDEN.forEach(runde=>{
-    html+=`<div class="ko-section"><div class="ko-title">${runde.icon} ${runde.label}</div><div class="ko-grid">`;
+
+  // Info-Box
+  html+=`<div style="background:var(--acc-light);border:1px solid rgba(232,168,0,.3);border-radius:8px;padding:11px 14px;margin-bottom:18px;font-size:12px;color:var(--acc-dark);font-weight:500">
+    📋 <strong>Ablauf:</strong> Teams eintragen → Speichern → Sieger anklicken → Speichern. Sobald ein Sieger gesetzt ist, werden die Tipps der Spieler automatisch ausgewertet.
+  </div>`;
+
+  BRACKET.forEach(runde=>{
+    html+=`<div class="ko-section">
+      <div class="ko-title" style="border-bottom:2px solid ${runde.farbe}20;color:var(--txt)">
+        <span style="background:${runde.farbe};color:#fff;padding:3px 10px;border-radius:6px;font-size:13px">${runde.runde}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:10px;margin-bottom:8px">`;
+
     runde.spiele.forEach(s=>{
-      const ko=koCache[s.id]||{};const t1=ko.team1||'',t2=ko.team2||'',w=ko.winner||'';
-      html+=`<div class="ko-adm-card">
-        <div class="ko-adm-title">${s.label} · ${s.d} · ${s.o}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-          <div><div style="font-size:10px;color:var(--txt3);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">Team 1</div>
-          <input class="fi" style="padding:8px 10px;font-size:13px" id="ko-t1-${s.id}" value="${t1}" placeholder="Team..." list="tl"></div>
-          <div><div style="font-size:10px;color:var(--txt3);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">Team 2</div>
-          <input class="fi" style="padding:8px 10px;font-size:13px" id="ko-t2-${s.id}" value="${t2}" placeholder="Team..." list="tl"></div>
+      const ko=koCache[s.id]||{};
+      const t1=ko.team1||'', t2=ko.team2||'', w=ko.winner||'';
+      const hasBoth=t1&&t2;
+      const selW=admWinSel[s.id]||w;
+
+      html+=`<div style="background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:15px;box-shadow:var(--shadow)">
+        <!-- Header -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--txt)">${s.label}</div>
+            <div style="font-size:10px;color:var(--txt3);margin-top:2px">📅 ${s.d} &nbsp;·&nbsp; 📍 ${s.o}</div>
+            <div style="font-size:10px;color:var(--txt2);margin-top:1px;font-style:italic">${s.info}</div>
+          </div>
+          ${w?`<span style="background:var(--green-light);color:var(--green);border:1px solid rgba(46,125,50,.2);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700">✓ Fertig</span>`:'<span style="background:var(--acc-light);color:var(--acc-dark);border:1px solid rgba(232,168,0,.2);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:600">Ausstehend</span>'}
         </div>
-        <div style="font-size:10px;color:var(--txt3);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px">Sieger</div>`;
-      if(t1&&t2){
+
+        <!-- Teams eingeben -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+          <div>
+            <div style="font-size:10px;color:var(--txt3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Team 1</div>
+            <div style="display:flex;align-items:center;gap:6px">
+              ${t1?flagImg(t1,'flag-sm'):'<span style="width:20px;height:14px;background:var(--bg2);border-radius:2px;flex-shrink:0;display:inline-block"></span>'}
+              <input class="fi" style="padding:7px 9px;font-size:12px;min-width:0" id="ko-t1-${s.id}" value="${t1}" placeholder="Team eingeben..." list="tl">
+            </div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--txt3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Team 2</div>
+            <div style="display:flex;align-items:center;gap:6px">
+              ${t2?flagImg(t2,'flag-sm'):'<span style="width:20px;height:14px;background:var(--bg2);border-radius:2px;flex-shrink:0;display:inline-block"></span>'}
+              <input class="fi" style="padding:7px 9px;font-size:12px;min-width:0" id="ko-t2-${s.id}" value="${t2}" placeholder="Team eingeben..." list="tl">
+            </div>
+          </div>
+        </div>
+
+        <!-- Sieger wählen -->
+        <div style="font-size:10px;color:var(--txt3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">Sieger / Weiterkommer</div>`;
+
+      if(hasBoth){
         [t1,t2].forEach(team=>{
-          const isSel=(admWinSel[s.id]||w)===team;
-          html+=`<div class="ko-adm-team${isSel?' sel':''}" onclick="selAdmW('${s.id}','${team}')">${flagImg(team,'flag-sm')}<span style="font-size:13px;font-weight:700">${team}</span>${isSel?'<span style="margin-left:auto;color:var(--green);font-size:12px;font-weight:700">✓</span>':''}</div>`;
+          const isSel=selW===team;
+          html+=`<div onclick="selAdmW('${s.id}','${team}')"
+            style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:1.5px solid ${isSel?'var(--green)':'var(--b1)'};background:${isSel?'var(--green-light)':'var(--s2)'};cursor:pointer;margin-bottom:5px;transition:all .15s">
+            ${flagImg(team,'flag-sm')}
+            <span style="font-size:13px;font-weight:700;flex:1">${team}</span>
+            ${isSel?'<span style="color:var(--green);font-size:12px;font-weight:700">✓ Sieger</span>':'<span style="color:var(--txt3);font-size:11px">Tippen</span>'}
+          </div>`;
         });
       } else {
-        html+=`<div style="font-size:12px;color:var(--txt3);padding:6px;font-style:italic">Teams erst eingeben & speichern</div>`;
+        html+=`<div style="border:1.5px dashed var(--b2);border-radius:8px;padding:10px;text-align:center;color:var(--txt3);font-size:12px;margin-bottom:8px">
+          Erst Teams eingeben & speichern
+        </div>`;
       }
-      html+=`<button class="ko-adm-save" onclick="saveAdmKO('${s.id}')">💾 Speichern</button>
-        <div id="ko-ok-${s.id}" style="text-align:center;font-size:11px;font-weight:600;color:var(--green);margin-top:6px;${w?'':'display:none'}">${w?'✓ Sieger: '+w:''}</div>
+
+      html+=`<button onclick="saveAdmKO('${s.id}')"
+        style="width:100%;background:${runde.farbe};border:none;border-radius:7px;color:#fff;cursor:pointer;font-size:13px;font-weight:700;padding:8px;margin-top:4px;transition:opacity .15s"
+        onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+        💾 Speichern${selW?' — Sieger: '+selW:''}
+      </button>
+      <div id="ko-ok-${s.id}" style="text-align:center;font-size:11px;font-weight:600;color:var(--green);margin-top:5px;${w?'':'display:none'}">${w?'✓ Sieger eingetragen: '+w:''}</div>
       </div>`;
     });
-    html+='</div></div>';
+
+    html+=`</div></div>`;
   });
+
   document.getElementById('adm-ko-content').innerHTML=html;
 }
+
 function selAdmW(sid,team){admWinSel[sid]=team;renderAdmKO();}
+
 async function saveAdmKO(sid){
-  const t1=document.getElementById('ko-t1-'+sid).value.trim(),t2=document.getElementById('ko-t2-'+sid).value.trim();
+  const t1=document.getElementById('ko-t1-'+sid).value.trim();
+  const t2=document.getElementById('ko-t2-'+sid).value.trim();
   const w=admWinSel[sid]||koCache[sid]?.winner||'';
   if(!t1||!t2){toast('Beide Teams eingeben','er');return;}
-  const data={team1:t1,team2:t2};if(w)data.winner=w;
-  await dbUpd('ko_ergebnisse',{[sid]:data});koCache[sid]=data;
-  const ok=document.getElementById('ko-ok-'+sid);ok.style.display='block';ok.textContent=w?'✓ Sieger: '+w:'✓ Teams gespeichert';
-  toast('✅ Gespeichert','ok');renderAdmKO();
+  const data={team1:t1,team2:t2};
+  if(w)data.winner=w;
+  await dbUpd('ko_ergebnisse',{[sid]:data});
+  koCache[sid]=data;
+  const ok=document.getElementById('ko-ok-'+sid);
+  if(ok){ok.style.display='block';ok.textContent=w?'✓ Sieger eingetragen: '+w:'✓ Teams gespeichert';}
+  toast('✅ Gespeichert','ok');
+  renderAdmKO();
 }
 
 async function loadMit(){
