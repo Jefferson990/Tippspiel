@@ -1,0 +1,1533 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HeTec WM Tippspiel 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, get, update, onValue, push } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  // ============================================================
+  // 🔧 FIREBASE KONFIGURATION — hier deine Firebase-Daten eintragen
+  // ============================================================
+  const firebaseConfig = {
+    apiKey: "AIzaSyAMrkKb3VJklnCBV_tA9Ha1n13VxnTWnzk",
+    authDomain: "hetec-wm2026.firebaseapp.com",
+    databaseURL: "https://hetec-wm2026-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "hetec-wm2026",
+    storageBucket: "hetec-wm2026.firebasestorage.app",
+    messagingSenderId: "741658253298",
+    appId: "1:741658253298:web:904b0d35a02e7ae7f2fd6b",
+    measurementId: "G-SJR6HH9TSE"
+  };
+
+  // ============================================================
+  // 🔑 ADMIN PASSWORT — hier ändern!
+  // ============================================================
+  const ADMIN_PASSWORD = "HeTec2026!";
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  window._db = db;
+  window._ref = ref;
+  window._set = set;
+  window._get = get;
+  window._update = update;
+  window._onValue = onValue;
+  window._push = push;
+  window._ADMIN_PASSWORD = ADMIN_PASSWORD;
+  window._firebaseReady = true;
+  document.dispatchEvent(new Event('firebaseReady'));
+</script>
+
+<style>
+:root {
+  --bg: #060b14;
+  --surface: #0d1626;
+  --surface2: #132035;
+  --surface3: #1a2d47;
+  --border: #1e3354;
+  --border2: #2a4a6e;
+  --accent: #e8b84b;
+  --accent-dim: rgba(232,184,75,0.15);
+  --red: #d63031;
+  --green: #00b894;
+  --blue: #0984e3;
+  --text: #e8f0ff;
+  --text2: #6b8ab0;
+  --text3: #3d5a7a;
+  --gold: #ffd700;
+  --silver: #b0bec5;
+  --bronze: #cd7f32;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Barlow', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 10%, rgba(232,184,75,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 90%, rgba(9,132,227,0.05) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ===== LOADING ===== */
+#loading-screen {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 9999;
+  gap: 20px;
+}
+.loader-logo {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 52px;
+  letter-spacing: 6px;
+  color: var(--accent);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+.loader-sub {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px;
+  letter-spacing: 4px;
+  color: var(--text2);
+  text-transform: uppercase;
+}
+.loader-bar {
+  width: 200px; height: 3px;
+  background: var(--surface3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.loader-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  animation: load 1.5s ease-in-out infinite;
+}
+@keyframes load { 0%{width:0;margin-left:0} 50%{width:100%;margin-left:0} 100%{width:0;margin-left:100%} }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+/* ===== HEADER ===== */
+header {
+  position: sticky; top: 0; z-index: 200;
+  background: rgba(6,11,20,0.95);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 4px 40px rgba(0,0,0,0.6);
+}
+.header-inner {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 0 20px;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.logo {
+  display: flex; align-items: center; gap: 12px;
+  text-decoration: none;
+}
+.logo-box {
+  background: var(--accent);
+  color: #000;
+  font-family: 'Bebas Neue', cursive;
+  font-size: 13px;
+  letter-spacing: 1px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  line-height: 1.3;
+  text-align: center;
+}
+.logo-title {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 22px;
+  letter-spacing: 3px;
+  color: var(--text);
+}
+.logo-title span { color: var(--accent); }
+
+nav {
+  display: flex; gap: 2px;
+  margin-left: auto;
+}
+.nav-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text2);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 7px 16px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.nav-btn:hover { color: var(--text); border-color: var(--border2); }
+.nav-btn.active { background: var(--accent-dim); color: var(--accent); border-color: rgba(232,184,75,0.3); }
+.nav-btn.admin-btn { color: var(--red); }
+.nav-btn.admin-btn.active { background: rgba(214,48,49,0.1); color: var(--red); border-color: rgba(214,48,49,0.3); }
+
+.user-pill {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 5px 14px 5px 10px;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.user-pill:hover { border-color: var(--accent); }
+.user-avatar {
+  width: 26px; height: 26px;
+  background: var(--accent);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Bebas Neue', cursive;
+  font-size: 14px;
+  color: #000;
+  flex-shrink: 0;
+}
+
+/* ===== MAIN ===== */
+main {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 28px 20px 80px;
+  position: relative; z-index: 1;
+}
+
+.page { display: none; }
+.page.active { display: block; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+/* ===== AUTH SCREEN ===== */
+.auth-screen {
+  min-height: 80vh;
+  display: flex; align-items: center; justify-content: center;
+}
+.auth-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 48px 40px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.auth-header {
+  text-align: center;
+  margin-bottom: 36px;
+}
+.auth-wm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--accent-dim);
+  border: 1px solid rgba(232,184,75,0.3);
+  border-radius: 30px;
+  padding: 6px 16px;
+  margin-bottom: 20px;
+}
+.auth-wm-badge span {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+.auth-title {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 44px;
+  letter-spacing: 4px;
+  line-height: 1;
+}
+.auth-title .highlight { color: var(--accent); }
+.auth-subtitle {
+  color: var(--text2);
+  font-size: 14px;
+  margin-top: 8px;
+  font-family: 'Barlow Condensed', sans-serif;
+  letter-spacing: 1px;
+}
+
+.form-group { margin-bottom: 16px; }
+.form-label {
+  display: block;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text2);
+  margin-bottom: 8px;
+}
+.form-input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'Barlow', sans-serif;
+  font-size: 15px;
+  padding: 12px 16px;
+  outline: none;
+  transition: all 0.2s;
+}
+.form-input:focus { border-color: var(--accent); background: var(--surface3); }
+.form-input::placeholder { color: var(--text3); }
+
+.btn-primary {
+  width: 100%;
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  color: #000;
+  cursor: pointer;
+  font-family: 'Bebas Neue', cursive;
+  font-size: 20px;
+  letter-spacing: 3px;
+  padding: 14px;
+  transition: all 0.2s;
+  margin-top: 8px;
+}
+.btn-primary:hover { background: #f0ca5a; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(232,184,75,0.3); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.auth-toggle {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--text2);
+}
+.auth-toggle a {
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: none;
+}
+.auth-toggle a:hover { text-decoration: underline; }
+
+.error-msg {
+  background: rgba(214,48,49,0.1);
+  border: 1px solid rgba(214,48,49,0.3);
+  border-radius: 6px;
+  color: #ff7675;
+  font-size: 13px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  display: none;
+}
+.error-msg.show { display: block; }
+
+/* ===== SECTION TITLES ===== */
+.page-title {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 36px;
+  letter-spacing: 4px;
+  color: var(--text);
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.page-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--border), transparent);
+}
+
+/* ===== TABELLE ===== */
+.tabelle-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.tabelle-topbar {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.legend {
+  display: flex; gap: 16px; flex-wrap: wrap;
+}
+.legend-item {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: var(--text2);
+}
+.legend-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+}
+.ld-exact { background: var(--green); }
+.ld-tend { background: var(--blue); }
+.ld-wrong { background: var(--red); }
+.ld-open { background: var(--border2); }
+
+table { width: 100%; border-collapse: collapse; }
+th {
+  background: var(--surface2);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text2);
+  padding: 12px 20px;
+  text-align: left;
+  white-space: nowrap;
+}
+th.c { text-align: center; }
+td {
+  padding: 14px 20px;
+  border-bottom: 1px solid rgba(30,51,84,0.6);
+  vertical-align: middle;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,0.015); }
+.rank-num {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 24px;
+  text-align: center;
+  width: 50px;
+}
+.r1 { color: var(--gold); }
+.r2 { color: var(--silver); }
+.r3 { color: var(--bronze); }
+.player-name-cell { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 700; }
+.player-alias { font-size: 12px; color: var(--text2); font-family: 'Barlow', sans-serif; font-weight: 400; }
+.pts-big { font-family: 'Bebas Neue', cursive; font-size: 30px; color: var(--accent); text-align: center; }
+.num-cell { text-align: center; font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 700; }
+.dots-row { display: flex; flex-wrap: wrap; gap: 3px; max-width: 200px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.d-exact { background: var(--green); }
+.d-tend { background: var(--blue); }
+.d-wrong { background: var(--red); }
+.d-open { background: var(--border2); }
+.me-row td { background: rgba(232,184,75,0.04) !important; }
+
+/* ===== TIPPS ===== */
+.gruppe-header {
+  display: flex; align-items: center; gap: 14px;
+  margin: 36px 0 16px;
+}
+.gruppe-badge {
+  background: var(--accent);
+  color: #000;
+  font-family: 'Bebas Neue', cursive;
+  font-size: 20px;
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.gruppe-info h3 {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 20px;
+  letter-spacing: 2px;
+}
+.gruppe-info p { font-size: 12px; color: var(--text2); font-family: 'Barlow Condensed', sans-serif; letter-spacing: 1px; }
+
+.spiele-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 10px;
+}
+
+.spiel-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.spiel-card:hover { border-color: var(--border2); }
+.spiel-card.locked { opacity: 0.7; }
+
+.spiel-top {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px;
+}
+.spiel-meta { font-size: 11px; color: var(--text2); font-family: 'Barlow Condensed', sans-serif; letter-spacing: 1px; }
+.locked-badge {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px;
+  letter-spacing: 1px;
+  background: rgba(214,48,49,0.15);
+  color: var(--red);
+  border: 1px solid rgba(214,48,49,0.3);
+  border-radius: 10px;
+  padding: 2px 8px;
+  display: none;
+}
+.spiel-card.locked .locked-badge { display: inline-block; }
+
+.spiel-teams {
+  display: flex; align-items: center; gap: 8px;
+}
+.team-block {
+  flex: 1;
+  display: flex; align-items: center; gap: 8px;
+}
+.team-block.away { flex-direction: row-reverse; }
+.team-flag { font-size: 24px; flex-shrink: 0; }
+.team-n {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+.team-block.home .team-n { text-align: right; }
+.team-block.away .team-n { text-align: left; }
+
+.score-box {
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  display: flex; align-items: center; gap: 4px;
+  padding: 6px 10px;
+  transition: border-color 0.2s;
+  flex-shrink: 0;
+}
+.score-box:focus-within { border-color: var(--accent); }
+.score-box.has-result { border-color: rgba(0,184,148,0.4); }
+.score-inp {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: 'Bebas Neue', cursive;
+  font-size: 28px;
+  outline: none;
+  text-align: center;
+  width: 34px;
+  -moz-appearance: textfield;
+}
+.score-inp::-webkit-inner-spin-button,
+.score-inp::-webkit-outer-spin-button { -webkit-appearance: none; }
+.score-inp:disabled { color: var(--text2); }
+.score-sep { color: var(--text3); font-family: 'Bebas Neue', cursive; font-size: 22px; }
+
+.tipp-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 10px;
+}
+.status-badge {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px; letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 2px 10px;
+  border-radius: 10px;
+}
+.sb-exact { background: rgba(0,184,148,0.15); color: var(--green); border: 1px solid rgba(0,184,148,0.3); }
+.sb-tend  { background: rgba(9,132,227,0.15); color: var(--blue); border: 1px solid rgba(9,132,227,0.3); }
+.sb-wrong { background: rgba(214,48,49,0.15); color: var(--red); border: 1px solid rgba(214,48,49,0.3); }
+.ergebnis-display {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px;
+  color: var(--text2);
+}
+.ergebnis-display strong { color: var(--text); }
+
+/* ===== PROGRESS BAR ===== */
+.progress-bar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 24px;
+  margin-bottom: 24px;
+  display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+}
+.progress-label { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; letter-spacing: 1.5px; color: var(--text2); text-transform: uppercase; flex-shrink: 0; }
+.progress-track { flex: 1; min-width: 100px; height: 6px; background: var(--surface3); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #f0ca5a); border-radius: 3px; transition: width 0.5s; }
+.progress-count { font-family: 'Bebas Neue', cursive; font-size: 20px; color: var(--accent); flex-shrink: 0; }
+
+/* ===== ADMIN ===== */
+.admin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 10px; }
+.ergebnis-admin-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+.era-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.era-teams { font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+.era-meta { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.era-inputs { display: flex; align-items: center; gap: 8px; }
+.era-score-box {
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  display: flex; align-items: center; gap: 4px;
+  padding: 6px 12px;
+  transition: border-color 0.2s;
+}
+.era-score-box:focus-within { border-color: var(--green); }
+.era-inp {
+  background: transparent; border: none;
+  color: var(--text);
+  font-family: 'Bebas Neue', cursive;
+  font-size: 26px;
+  outline: none;
+  text-align: center;
+  width: 32px;
+  -moz-appearance: textfield;
+}
+.era-inp::-webkit-inner-spin-button, .era-inp::-webkit-outer-spin-button { -webkit-appearance: none; }
+.era-save-btn {
+  background: var(--green);
+  border: none;
+  border-radius: 6px;
+  color: #000;
+  cursor: pointer;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 8px 14px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.era-save-btn:hover { background: #00d2a0; }
+.era-saved { color: var(--green); font-size: 12px; font-family: 'Barlow Condensed', sans-serif; display: none; }
+
+/* Admin Mitarbeiter */
+.mitarbeiter-table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-top: 24px;
+}
+.btn-sm {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text2);
+  cursor: pointer;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px;
+  letter-spacing: 1px;
+  padding: 5px 12px;
+  transition: all 0.2s;
+}
+.btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+.btn-sm.danger:hover { border-color: var(--red); color: var(--red); }
+
+/* ===== TOAST ===== */
+#toast {
+  position: fixed; bottom: 28px; right: 24px; z-index: 9999;
+  background: var(--surface3);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px;
+  letter-spacing: 1px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  transform: translateY(20px); opacity: 0;
+  transition: all 0.3s;
+  pointer-events: none;
+  max-width: 300px;
+}
+#toast.show { transform: translateY(0); opacity: 1; }
+#toast.success { border-color: rgba(0,184,148,0.5); }
+#toast.error { border-color: rgba(214,48,49,0.5); }
+
+/* ===== MISC ===== */
+.empty { text-align: center; padding: 60px 20px; color: var(--text2); }
+.empty h3 { font-family: 'Bebas Neue', cursive; font-size: 28px; letter-spacing: 2px; margin-bottom: 8px; }
+
+.btn-outline {
+  background: transparent;
+  border: 1.5px solid var(--border2);
+  border-radius: 8px;
+  color: var(--text2);
+  cursor: pointer;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 9px 20px;
+  transition: all 0.2s;
+}
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 16px;
+  padding: 32px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+}
+.modal-title {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 26px;
+  letter-spacing: 3px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 700px) {
+  .header-inner { padding: 0 12px; }
+  .logo-title { font-size: 16px; }
+  nav { gap: 1px; }
+  .nav-btn { padding: 6px 10px; font-size: 11px; }
+  main { padding: 16px 12px 80px; }
+  .spiele-grid { grid-template-columns: 1fr; }
+  .admin-grid { grid-template-columns: 1fr; }
+  th, td { padding: 10px 12px; }
+  .auth-card { padding: 28px 20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loading-screen">
+  <div class="loader-logo">HeTec WM 2026</div>
+  <div class="loader-sub">Verbinde mit Datenbank...</div>
+  <div class="loader-bar"><div class="loader-bar-fill"></div></div>
+</div>
+
+<!-- Header -->
+<header id="app-header" style="display:none">
+  <div class="header-inner">
+    <a class="logo" href="#">
+      <div class="logo-box">WM<br>26</div>
+      <div class="logo-title">HeTec <span>Tippspiel</span></div>
+    </a>
+    <nav id="main-nav" style="display:none">
+      <button class="nav-btn active" onclick="showPage('tabelle',this)">🏆 Tabelle</button>
+      <button class="nav-btn" onclick="showPage('tipps',this)">⚽ Meine Tipps</button>
+      <button class="nav-btn admin-btn" id="admin-nav-btn" style="display:none" onclick="showPage('admin',this)">🔧 Admin</button>
+    </nav>
+    <div id="user-info" style="display:none;margin-left:auto">
+      <div class="user-pill" onclick="logout()">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <span id="user-nick-display"></span>
+        <span style="color:var(--text3);font-size:11px">▾</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- Main App -->
+<main id="app-main" style="display:none">
+
+  <!-- AUTH PAGE -->
+  <div id="page-auth" class="page active">
+    <div class="auth-screen">
+      <div class="auth-card">
+        <div class="auth-header">
+          <div class="auth-wm-badge">
+            <span>🌍 Kanada • Mexiko • USA 2026</span>
+          </div>
+          <div class="auth-title">HeTec<br><span class="highlight">Tippspiel</span></div>
+          <div class="auth-subtitle">11. Juni – 19. Juli 2026</div>
+        </div>
+
+        <!-- Login -->
+        <div id="auth-login">
+          <div class="error-msg" id="login-error"></div>
+          <div class="form-group">
+            <label class="form-label">Dein Nickname</label>
+            <input class="form-input" id="login-nick" type="text" placeholder="z.B. TigerMike" autocomplete="off">
+          </div>
+          <button class="btn-primary" onclick="doLogin()">Einloggen →</button>
+          <div class="auth-toggle">Noch kein Account? <a onclick="switchAuth('register')">Jetzt registrieren</a></div>
+        </div>
+
+        <!-- Register -->
+        <div id="auth-register" style="display:none">
+          <div class="error-msg" id="reg-error"></div>
+          <div class="form-group">
+            <label class="form-label">Nickname (wird öffentlich angezeigt)</label>
+            <input class="form-input" id="reg-nick" type="text" placeholder="z.B. TigerMike" maxlength="20" autocomplete="off">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="form-group">
+              <label class="form-label">Vorname</label>
+              <input class="form-input" id="reg-first" type="text" placeholder="Max" maxlength="30">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nachname</label>
+              <input class="form-input" id="reg-last" type="text" placeholder="Mustermann" maxlength="30">
+            </div>
+          </div>
+          <button class="btn-primary" onclick="doRegister()">Registrieren & Spielen →</button>
+          <div class="auth-toggle">Schon registriert? <a onclick="switchAuth('login')">Einloggen</a></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABELLE PAGE -->
+  <div id="page-tabelle" class="page">
+    <div class="page-title">🏆 Rangliste</div>
+    <div class="tabelle-wrap">
+      <div class="tabelle-topbar">
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot ld-exact"></div> Exakt (3 Pkt)</div>
+          <div class="legend-item"><div class="legend-dot ld-tend"></div> Tendenz (1 Pkt)</div>
+          <div class="legend-item"><div class="legend-dot ld-wrong"></div> Falsch (0 Pkt)</div>
+          <div class="legend-item"><div class="legend-dot ld-open"></div> Offen</div>
+        </div>
+        <button class="btn-outline" onclick="loadTabelle()">↻ Aktualisieren</button>
+      </div>
+      <div id="tabelle-body"><div class="empty"><h3>Lade Daten...</h3></div></div>
+    </div>
+  </div>
+
+  <!-- TIPPS PAGE -->
+  <div id="page-tipps" class="page">
+    <div class="page-title">⚽ Meine Tipps</div>
+    <div class="progress-bar" id="tipp-progress" style="display:none">
+      <span class="progress-label">Fortschritt</span>
+      <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+      <span class="progress-count" id="prog-count">0 / 48</span>
+    </div>
+    <div id="tipps-content"><div class="empty"><h3>Lade Tipps...</h3></div></div>
+  </div>
+
+  <!-- ADMIN PAGE -->
+  <div id="page-admin" class="page">
+    <div id="admin-login-wrap">
+      <div class="auth-screen" style="min-height:60vh">
+        <div class="auth-card">
+          <div class="auth-header">
+            <div class="auth-title" style="font-size:36px">🔧 Admin<br><span class="highlight">Bereich</span></div>
+          </div>
+          <div class="error-msg" id="admin-error"></div>
+          <div class="form-group">
+            <label class="form-label">Admin Passwort</label>
+            <input class="form-input" id="admin-pw-input" type="password" placeholder="••••••••"
+              onkeydown="if(event.key==='Enter')doAdminLogin()">
+          </div>
+          <button class="btn-primary" onclick="doAdminLogin()">Einloggen</button>
+        </div>
+      </div>
+    </div>
+    <div id="admin-content" style="display:none">
+      <div style="display:flex;gap:8px;margin-bottom:28px;flex-wrap:wrap">
+        <button class="nav-btn active" id="atab-ergebnisse" onclick="adminTab('ergebnisse')">📋 Ergebnisse eintragen</button>
+        <button class="nav-btn" id="atab-mitarbeiter" onclick="adminTab('mitarbeiter')">👥 Mitarbeiter</button>
+      </div>
+      <div id="admin-ergebnisse-wrap">
+        <div class="admin-grid" id="admin-ergebnisse-grid"></div>
+      </div>
+      <div id="admin-mitarbeiter-wrap" style="display:none">
+        <div class="mitarbeiter-table-wrap">
+          <table>
+            <thead><tr>
+              <th>#</th><th>Nickname</th><th>Vorname</th><th>Nachname</th><th>Registriert</th><th>Tipps</th><th>Aktion</th>
+            </tr></thead>
+            <tbody id="mitarbeiter-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Admin Edit Modal -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal-box">
+    <div class="modal-title">✏️ Mitarbeiter bearbeiten</div>
+    <input type="hidden" id="edit-nick-key">
+    <div class="form-group">
+      <label class="form-label">Nickname</label>
+      <input class="form-input" id="edit-nick" type="text" maxlength="20">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group">
+        <label class="form-label">Vorname</label>
+        <input class="form-input" id="edit-first" type="text" maxlength="30">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nachname</label>
+        <input class="form-input" id="edit-last" type="text" maxlength="30">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn-primary" style="flex:1" onclick="saveEditMitarbeiter()">Speichern</button>
+      <button class="btn-outline" onclick="closeModal()">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========================================================
+// SPIELPLAN DATEN
+// ========================================================
+const GRUPPEN = [
+  { id:'A', teams:['Brasilien','Haiti','Marokko','Schottland'], spiele:[
+    {id:'A1',h:'Brasilien',g:'Marokko',d:'So 14.06.',z:'0:00',o:'New York/NJ'},
+    {id:'A2',h:'Haiti',g:'Schottland',d:'So 14.06.',z:'3:00',o:'Boston'},
+    {id:'A3',h:'Schottland',g:'Marokko',d:'Sa 20.06.',z:'0:00',o:'Boston'},
+    {id:'A4',h:'Brasilien',g:'Haiti',d:'Sa 20.06.',z:'3:00',o:'Philadelphia'},
+    {id:'A5',h:'Schottland',g:'Brasilien',d:'Do 25.06.',z:'0:00',o:'Miami'},
+    {id:'A6',h:'Marokko',g:'Haiti',d:'Do 25.06.',z:'0:00',o:'Atlanta'},
+  ]},
+  { id:'B', teams:['Kanada','Katar','Schweiz','Bosnien-H.'], spiele:[
+    {id:'B1',h:'Kanada',g:'Bosnien-H.',d:'Fr 13.06.',z:'21:00',o:'Toronto'},
+    {id:'B2',h:'Katar',g:'Schweiz',d:'Sa 13.06.',z:'21:00',o:'San Fran. Bay Area'},
+    {id:'B3',h:'Schweiz',g:'Bosnien-H.',d:'Do 18.06.',z:'21:00',o:'Los Angeles'},
+    {id:'B4',h:'Kanada',g:'Katar',d:'Fr 19.06.',z:'0:00',o:'Vancouver'},
+    {id:'B5',h:'Schweiz',g:'Kanada',d:'Mi 24.06.',z:'21:00',o:'Vancouver'},
+    {id:'B6',h:'Bosnien-H.',g:'Katar',d:'Mi 24.06.',z:'21:00',o:'Seattle'},
+  ]},
+  { id:'C', teams:['Mexiko','Südafrika','Südkorea','Tschechien'], spiele:[
+    {id:'C1',h:'Mexiko',g:'Südafrika',d:'Do 11.06.',z:'21:00',o:'Mexiko-Stadt'},
+    {id:'C2',h:'Südkorea',g:'Tschechien',d:'Fr 12.06.',z:'4:00',o:'Guadalajara'},
+    {id:'C3',h:'Tschechien',g:'Südafrika',d:'Do 18.06.',z:'18:00',o:'Atlanta'},
+    {id:'C4',h:'Mexiko',g:'Südkorea',d:'Fr 19.06.',z:'3:00',o:'Guadalajara'},
+    {id:'C5',h:'Tschechien',g:'Mexiko',d:'Do 25.06.',z:'3:00',o:'Mexiko-Stadt'},
+    {id:'C6',h:'Südafrika',g:'Südkorea',d:'Do 25.06.',z:'3:00',o:'Monterrey'},
+  ]},
+  { id:'D', teams:['Frankreich','Senegal','Irak','Norwegen'], spiele:[
+    {id:'D1',h:'Frankreich',g:'Senegal',d:'Di 16.06.',z:'21:00',o:'New York/NJ'},
+    {id:'D2',h:'Irak',g:'Norwegen',d:'Mi 17.06.',z:'0:00',o:'Boston'},
+    {id:'D3',h:'Frankreich',g:'Irak',d:'Mo 22.06.',z:'23:00',o:'Philadelphia'},
+    {id:'D4',h:'Norwegen',g:'Senegal',d:'Di 23.06.',z:'2:00',o:'New York/NJ'},
+    {id:'D5',h:'Norwegen',g:'Frankreich',d:'Fr 26.06.',z:'21:00',o:'Boston'},
+    {id:'D6',h:'Senegal',g:'Irak',d:'Fr 26.06.',z:'21:00',o:'Toronto'},
+  ]},
+  { id:'E', teams:['Spanien','Kap Verde','Saudi-Arabien','Uruguay'], spiele:[
+    {id:'E1',h:'Spanien',g:'Kap Verde',d:'Mo 15.06.',z:'18:00',o:'Atlanta'},
+    {id:'E2',h:'Saudi-Arabien',g:'Uruguay',d:'Di 16.06.',z:'0:00',o:'Miami'},
+    {id:'E3',h:'Spanien',g:'Saudi-Arabien',d:'So 21.06.',z:'18:00',o:'Atlanta'},
+    {id:'E4',h:'Uruguay',g:'Kap Verde',d:'Mo 22.06.',z:'0:00',o:'Miami'},
+    {id:'E5',h:'Uruguay',g:'Spanien',d:'Sa 27.06.',z:'2:00',o:'Guadalajara'},
+    {id:'E6',h:'Kap Verde',g:'Saudi-Arabien',d:'Sa 27.06.',z:'2:00',o:'Houston'},
+  ]},
+  { id:'F', teams:['Belgien','Ägypten','Iran','Neuseeland'], spiele:[
+    {id:'F1',h:'Belgien',g:'Ägypten',d:'Mo 15.06.',z:'21:00',o:'Seattle'},
+    {id:'F2',h:'Iran',g:'Neuseeland',d:'Di 16.06.',z:'3:00',o:'Los Angeles'},
+    {id:'F3',h:'Belgien',g:'Iran',d:'So 21.06.',z:'21:00',o:'Los Angeles'},
+    {id:'F4',h:'Neuseeland',g:'Ägypten',d:'Mo 22.06.',z:'3:00',o:'Vancouver'},
+    {id:'F5',h:'Neuseeland',g:'Belgien',d:'Sa 27.06.',z:'5:00',o:'Vancouver'},
+    {id:'F6',h:'Ägypten',g:'Iran',d:'Sa 27.06.',z:'5:00',o:'Seattle'},
+  ]},
+  { id:'G', teams:['Niederlande','Japan','Schweden','Tunesien'], spiele:[
+    {id:'G1',h:'Niederlande',g:'Japan',d:'So 14.06.',z:'22:00',o:'Dallas'},
+    {id:'G2',h:'Schweden',g:'Tunesien',d:'Mo 15.06.',z:'4:00',o:'Monterrey'},
+    {id:'G3',h:'Niederlande',g:'Schweden',d:'Sa 20.06.',z:'19:00',o:'Houston'},
+    {id:'G4',h:'Tunesien',g:'Japan',d:'So 21.06.',z:'6:00',o:'Monterrey'},
+    {id:'G5',h:'Tunesien',g:'Niederlande',d:'Fr 26.06.',z:'1:00',o:'Kansas City'},
+    {id:'G6',h:'Japan',g:'Schweden',d:'Fr 26.06.',z:'1:00',o:'Dallas'},
+  ]},
+  { id:'H', teams:['Deutschland','Curacao','Elfenbeinküste','Ecuador'], spiele:[
+    {id:'H1',h:'Deutschland',g:'Curacao',d:'So 14.06.',z:'19:00',o:'Houston'},
+    {id:'H2',h:'Elfenbeinküste',g:'Ecuador',d:'Mo 15.06.',z:'1:00',o:'Philadelphia'},
+    {id:'H3',h:'Deutschland',g:'Elfenbeinküste',d:'Sa 20.06.',z:'22:00',o:'Toronto'},
+    {id:'H4',h:'Ecuador',g:'Curacao',d:'So 21.06.',z:'2:00',o:'Kansas City'},
+    {id:'H5',h:'Ecuador',g:'Deutschland',d:'Do 25.06.',z:'22:00',o:'New York/NJ'},
+    {id:'H6',h:'Curacao',g:'Elfenbeinküste',d:'Do 25.06.',z:'22:00',o:'Philadelphia'},
+  ]},
+  { id:'I', teams:['USA','Paraguay','Australien','Türkei'], spiele:[
+    {id:'I1',h:'USA',g:'Paraguay',d:'Sa 13.06.',z:'3:00',o:'Los Angeles'},
+    {id:'I2',h:'Australien',g:'Türkei',d:'So 14.06.',z:'6:00',o:'Vancouver'},
+    {id:'I3',h:'USA',g:'Australien',d:'Fr 19.06.',z:'21:00',o:'Seattle'},
+    {id:'I4',h:'Türkei',g:'Paraguay',d:'Sa 20.06.',z:'6:00',o:'San Fran.'},
+    {id:'I5',h:'Türkei',g:'USA',d:'Fr 26.06.',z:'4:00',o:'Los Angeles'},
+    {id:'I6',h:'Paraguay',g:'Australien',d:'Fr 26.06.',z:'4:00',o:'San Fran.'},
+  ]},
+  { id:'J', teams:['England','Kroatien','Ghana','Panama'], spiele:[
+    {id:'J1',h:'England',g:'Kroatien',d:'Mi 17.06.',z:'22:00',o:'Dallas'},
+    {id:'J2',h:'Ghana',g:'Panama',d:'Do 18.06.',z:'1:00',o:'Toronto'},
+    {id:'J3',h:'England',g:'Ghana',d:'Di 23.06.',z:'22:00',o:'Boston'},
+    {id:'J4',h:'Panama',g:'Kroatien',d:'Mi 24.06.',z:'1:00',o:'Toronto'},
+    {id:'J5',h:'Panama',g:'England',d:'Sa 27.06.',z:'23:00',o:'New York/NJ'},
+    {id:'J6',h:'Kroatien',g:'Ghana',d:'Sa 27.06.',z:'23:00',o:'Philadelphia'},
+  ]},
+  { id:'K', teams:['Portugal','D.R. Kongo','Usbekistan','Kolumbien'], spiele:[
+    {id:'K1',h:'Portugal',g:'D.R. Kongo',d:'Mi 17.06.',z:'19:00',o:'Houston'},
+    {id:'K2',h:'Usbekistan',g:'Kolumbien',d:'Do 18.06.',z:'4:00',o:'Mexiko-Stadt'},
+    {id:'K3',h:'Portugal',g:'Usbekistan',d:'Di 23.06.',z:'19:00',o:'Houston'},
+    {id:'K4',h:'Kolumbien',g:'D.R. Kongo',d:'Mi 24.06.',z:'4:00',o:'Guadalajara'},
+    {id:'K5',h:'Kolumbien',g:'Portugal',d:'So 28.06.',z:'1:30',o:'Miami'},
+    {id:'K6',h:'D.R. Kongo',g:'Usbekistan',d:'So 28.06.',z:'1:30',o:'Atlanta'},
+  ]},
+  { id:'L', teams:['Argentinien','Algerien','Österreich','Jordanien'], spiele:[
+    {id:'L1',h:'Argentinien',g:'Algerien',d:'Mi 17.06.',z:'3:00',o:'Kansas City'},
+    {id:'L2',h:'Österreich',g:'Jordanien',d:'Mi 17.06.',z:'6:00',o:'San Fran.'},
+    {id:'L3',h:'Argentinien',g:'Österreich',d:'Mo 22.06.',z:'19:00',o:'Dallas'},
+    {id:'L4',h:'Jordanien',g:'Algerien',d:'Di 23.06.',z:'5:00',o:'San Fran.'},
+    {id:'L5',h:'Jordanien',g:'Argentinien',d:'So 28.06.',z:'4:00',o:'Dallas'},
+    {id:'L6',h:'Algerien',g:'Österreich',d:'So 28.06.',z:'4:00',o:'Kansas City'},
+  ]},
+];
+
+const FLAGS = {
+  'Brasilien':'🇧🇷','Haiti':'🇭🇹','Marokko':'🇲🇦','Schottland':'🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+  'Kanada':'🇨🇦','Katar':'🇶🇦','Schweiz':'🇨🇭','Bosnien-H.':'🇧🇦',
+  'Mexiko':'🇲🇽','Südafrika':'🇿🇦','Südkorea':'🇰🇷','Tschechien':'🇨🇿',
+  'Frankreich':'🇫🇷','Senegal':'🇸🇳','Irak':'🇮🇶','Norwegen':'🇳🇴',
+  'Spanien':'🇪🇸','Kap Verde':'🇨🇻','Saudi-Arabien':'🇸🇦','Uruguay':'🇺🇾',
+  'Belgien':'🇧🇪','Ägypten':'🇪🇬','Iran':'🇮🇷','Neuseeland':'🇳🇿',
+  'Niederlande':'🇳🇱','Japan':'🇯🇵','Schweden':'🇸🇪','Tunesien':'🇹🇳',
+  'Deutschland':'🇩🇪','Curacao':'🇨🇼','Elfenbeinküste':'🇨🇮','Ecuador':'🇪🇨',
+  'USA':'🇺🇸','Paraguay':'🇵🇾','Australien':'🇦🇺','Türkei':'🇹🇷',
+  'England':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','Kroatien':'🇭🇷','Ghana':'🇬🇭','Panama':'🇵🇦',
+  'Portugal':'🇵🇹','D.R. Kongo':'🇨🇩','Usbekistan':'🇺🇿','Kolumbien':'🇨🇴',
+  'Argentinien':'🇦🇷','Algerien':'🇩🇿','Österreich':'🇦🇹','Jordanien':'🇯🇴',
+};
+
+const ALL_SPIELE = [];
+GRUPPEN.forEach(g => g.spiele.forEach(s => ALL_SPIELE.push({...s, gruppe: g.id})));
+
+// ========================================================
+// STATE
+// ========================================================
+let currentUser = null; // {nick, vorname, nachname}
+let adminLoggedIn = false;
+let tippCache = {};
+let ergebnisseCache = {};
+let dbReady = false;
+
+// ========================================================
+// FIREBASE HELPERS
+// ========================================================
+function dbRef(path) { return window._ref(window._db, path); }
+async function dbGet(path) {
+  const snap = await window._get(dbRef(path));
+  return snap.exists() ? snap.val() : null;
+}
+async function dbSet(path, val) { await window._set(dbRef(path), val); }
+async function dbUpdate(path, val) { await window._update(dbRef(path), val); }
+
+// ========================================================
+// INIT
+// ========================================================
+document.addEventListener('firebaseReady', async () => {
+  dbReady = true;
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('app-header').style.display = '';
+  document.getElementById('app-main').style.display = '';
+
+  // Gespeicherte Session?
+  const saved = localStorage.getItem('hetec_wm_nick');
+  if (saved) {
+    const user = await dbGet('spieler/' + saved);
+    if (user) {
+      loginUser(saved, user);
+      return;
+    } else {
+      localStorage.removeItem('hetec_wm_nick');
+    }
+  }
+  showAuthPage();
+});
+
+// ========================================================
+// AUTH
+// ========================================================
+function showAuthPage() {
+  document.getElementById('main-nav').style.display = 'none';
+  document.getElementById('user-info').style.display = 'none';
+  showPageDirect('auth');
+}
+
+function switchAuth(mode) {
+  document.getElementById('auth-login').style.display = mode === 'login' ? '' : 'none';
+  document.getElementById('auth-register').style.display = mode === 'register' ? '' : 'none';
+  document.getElementById('login-error').classList.remove('show');
+  document.getElementById('reg-error').classList.remove('show');
+}
+
+async function doLogin() {
+  const nick = document.getElementById('login-nick').value.trim();
+  const errEl = document.getElementById('login-error');
+  if (!nick) { showErr(errEl, 'Bitte Nickname eingeben'); return; }
+
+  const user = await dbGet('spieler/' + nick);
+  if (!user) {
+    showErr(errEl, 'Nickname nicht gefunden. Bitte registrieren.');
+    return;
+  }
+  loginUser(nick, user);
+}
+
+async function doRegister() {
+  const nick = document.getElementById('reg-nick').value.trim();
+  const vorname = document.getElementById('reg-first').value.trim();
+  const nachname = document.getElementById('reg-last').value.trim();
+  const errEl = document.getElementById('reg-error');
+
+  if (!nick || !vorname || !nachname) { showErr(errEl, 'Alle Felder ausfüllen'); return; }
+  if (nick.length < 2) { showErr(errEl, 'Nickname mind. 2 Zeichen'); return; }
+  if (!/^[a-zA-Z0-9_\-äöüÄÖÜ]+$/.test(nick)) { showErr(errEl, 'Nickname: nur Buchstaben, Zahlen, _ und -'); return; }
+
+  const existing = await dbGet('spieler/' + nick);
+  if (existing) { showErr(errEl, 'Dieser Nickname ist bereits vergeben'); return; }
+
+  const userData = { vorname, nachname, registriert: new Date().toISOString() };
+  await dbSet('spieler/' + nick, userData);
+  loginUser(nick, userData);
+  showToast('✅ Willkommen, ' + nick + '!', 'success');
+}
+
+function loginUser(nick, userData) {
+  currentUser = { nick, ...userData };
+  localStorage.setItem('hetec_wm_nick', nick);
+
+  document.getElementById('user-nick-display').textContent = nick;
+  document.getElementById('user-avatar').textContent = nick[0].toUpperCase();
+  document.getElementById('main-nav').style.display = '';
+  document.getElementById('user-info').style.display = '';
+
+  showPage('tabelle', document.querySelector('.nav-btn'));
+  loadTabelle();
+}
+
+function logout() {
+  if (!confirm('Abmelden?')) return;
+  currentUser = null;
+  adminLoggedIn = false;
+  localStorage.removeItem('hetec_wm_nick');
+  document.getElementById('admin-nav-btn').style.display = 'none';
+  document.getElementById('admin-content').style.display = 'none';
+  document.getElementById('admin-login-wrap').style.display = '';
+  showAuthPage();
+}
+
+function showErr(el, msg) { el.textContent = msg; el.classList.add('show'); }
+
+// ========================================================
+// NAVIGATION
+// ========================================================
+function showPage(name, btn) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  showPageDirect(name);
+
+  if (name === 'tabelle') loadTabelle();
+  if (name === 'tipps') loadTipps();
+  if (name === 'admin') initAdminPage();
+}
+
+function showPageDirect(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+}
+
+// ========================================================
+// PUNKTE BERECHNUNG
+// ========================================================
+function calcPts(t, e) {
+  if (t.h === '' || t.g === '' || t.h === undefined || t.g === undefined) return null;
+  if (e.h === '' || e.g === '' || e.h === undefined || e.g === undefined) return null;
+  const th = +t.h, tg = +t.g, eh = +e.h, eg = +e.g;
+  if (th === eh && tg === eg) return 3;
+  if (Math.sign(th - tg) === Math.sign(eh - eg)) return 1;
+  return 0;
+}
+
+// ========================================================
+// TABELLE
+// ========================================================
+async function loadTabelle() {
+  const bodyEl = document.getElementById('tabelle-body');
+  bodyEl.innerHTML = '<div class="empty"><h3>Lade...</h3></div>';
+
+  const [alleSpielaer, alleTipps, ergebnisse] = await Promise.all([
+    dbGet('spieler'),
+    dbGet('tipps'),
+    dbGet('ergebnisse'),
+  ]);
+
+  if (!alleSpielaer) { bodyEl.innerHTML = '<div class="empty"><h3>Keine Spieler</h3></div>'; return; }
+
+  ergebnisseCache = ergebnisse || {};
+
+  const rows = Object.entries(alleSpielaer).map(([nick, info]) => {
+    const myTipps = (alleTipps && alleTipps[nick]) ? alleTipps[nick] : {};
+    let punkte = 0, exakt = 0, tendenz = 0, falsch = 0, offen = 0;
+    const dots = [];
+
+    ALL_SPIELE.forEach(s => {
+      const t = myTipps[s.id] || {};
+      const e = ergebnisseCache[s.id] || {};
+      const pts = calcPts(t, e);
+      if (pts === null) { offen++; dots.push('o'); }
+      else if (pts === 3) { exakt++; punkte += 3; dots.push('e'); }
+      else if (pts === 1) { tendenz++; punkte += 1; dots.push('t'); }
+      else { falsch++; dots.push('w'); }
+    });
+
+    return { nick, info, punkte, exakt, tendenz, falsch, offen, dots };
+  });
+
+  rows.sort((a, b) => b.punkte - a.punkte || b.exakt - a.exakt || b.tendenz - a.tendenz);
+
+  const rankIcons = ['🥇','🥈','🥉'];
+
+  let html = `<table><thead><tr>
+    <th class="c">#</th>
+    <th>Spieler</th>
+    <th class="c">Punkte</th>
+    <th class="c" title="Exakt">✓</th>
+    <th class="c" title="Tendenz">~</th>
+    <th class="c" title="Falsch">✗</th>
+    <th>Verlauf</th>
+  </tr></thead><tbody>`;
+
+  rows.forEach((r, i) => {
+    const rank = i + 1;
+    const cls = rank <= 3 ? `r${rank}` : '';
+    const isMe = currentUser && r.nick === currentUser.nick;
+    const dotsHTML = r.dots.map(d => {
+      const cls = d==='e'?'d-exact':d==='t'?'d-tend':d==='w'?'d-wrong':'d-open';
+      return `<span class="dot ${cls}"></span>`;
+    }).join('');
+
+    html += `<tr class="${isMe ? 'me-row' : ''}">
+      <td class="rank-num ${cls}">${rankIcons[i] || rank}</td>
+      <td>
+        <div class="player-name-cell">${r.nick}${isMe?' <span style="color:var(--accent);font-size:12px">(Du)</span>':''}</div>
+        <div class="player-alias">${r.info.vorname} ${r.info.nachname}</div>
+      </td>
+      <td class="pts-big">${r.punkte}</td>
+      <td class="num-cell" style="color:var(--green)">${r.exakt}</td>
+      <td class="num-cell" style="color:var(--blue)">${r.tendenz}</td>
+      <td class="num-cell" style="color:var(--red)">${r.falsch}</td>
+      <td><div class="dots-row">${dotsHTML}</div></td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+  bodyEl.innerHTML = html;
+}
+
+// ========================================================
+// TIPPS
+// ========================================================
+async function loadTipps() {
+  if (!currentUser) return;
+  const container = document.getElementById('tipps-content');
+  container.innerHTML = '<div class="empty"><h3>Lade...</h3></div>';
+
+  const [myTipps, ergebnisse] = await Promise.all([
+    dbGet('tipps/' + currentUser.nick),
+    dbGet('ergebnisse'),
+  ]);
+
+  tippCache = myTipps || {};
+  ergebnisseCache = ergebnisse || {};
+
+  let filled = 0;
+  ALL_SPIELE.forEach(s => {
+    const t = tippCache[s.id] || {};
+    if (t.h !== undefined && t.h !== '' && t.g !== undefined && t.g !== '') filled++;
+  });
+
+  document.getElementById('tipp-progress').style.display = '';
+  document.getElementById('prog-fill').style.width = Math.round(filled / 48 * 100) + '%';
+  document.getElementById('prog-count').textContent = `${filled} / 48`;
+
+  let html = '';
+  GRUPPEN.forEach(g => {
+    html += `<div class="gruppe-header">
+      <div class="gruppe-badge">${g.id}</div>
+      <div class="gruppe-info">
+        <h3>Gruppe ${g.id}</h3>
+        <p>${g.teams.map(t => (FLAGS[t]||'🏳️') + ' ' + t).join(' &nbsp;·&nbsp; ')}</p>
+      </div>
+    </div>
+    <div class="spiele-grid">`;
+
+    g.spiele.forEach(s => {
+      const t = tippCache[s.id] || {h:'', g:''};
+      const e = ergebnisseCache[s.id];
+      const locked = e !== undefined && e.h !== '' && e.g !== '';
+      const hFlag = FLAGS[s.h] || '🏳️';
+      const gFlag = FLAGS[s.g] || '🏳️';
+
+      let statusHTML = '';
+      let ergebnisHTML = '';
+      if (locked) {
+        const pts = calcPts({h: t.h, g: t.g}, {h: e.h, g: e.g});
+        if (pts === 3) statusHTML = '<span class="status-badge sb-exact">✓ Exakt +3</span>';
+        else if (pts === 1) statusHTML = '<span class="status-badge sb-tend">~ Tendenz +1</span>';
+        else if (pts === 0) statusHTML = '<span class="status-badge sb-wrong">✗ Falsch +0</span>';
+        ergebnisHTML = `<span class="ergebnis-display">Ergebnis: <strong>${e.h}:${e.g}</strong></span>`;
+      }
+
+      html += `<div class="spiel-card${locked?' locked':''}">
+        <div class="spiel-top">
+          <span class="spiel-meta">📅 ${s.d} ${s.z} Uhr &nbsp;|&nbsp; 📍 ${s.o}</span>
+          <span class="locked-badge">🔒 Gesperrt</span>
+        </div>
+        <div class="spiel-teams">
+          <div class="team-block home">
+            <div class="team-n">${s.h}</div>
+            <div class="team-flag">${hFlag}</div>
+          </div>
+          <div class="score-box${locked?' has-result':''}">
+            <input class="score-inp" type="number" min="0" max="99"
+              value="${t.h!==''&&t.h!==undefined?t.h:''}" placeholder="–"
+              data-sid="${s.id}" data-side="h"
+              ${locked?'disabled':''}
+              oninput="onTippInput(this)">
+            <span class="score-sep">:</span>
+            <input class="score-inp" type="number" min="0" max="99"
+              value="${t.g!==''&&t.g!==undefined?t.g:''}" placeholder="–"
+              data-sid="${s.id}" data-side="g"
+              ${locked?'disabled':''}
+              oninput="onTippInput(this)">
+          </div>
+          <div class="team-block away">
+            <div class="team-flag">${gFlag}</div>
+            <div class="team-n">${s.g}</div>
+          </div>
+        </div>
+        <div class="tipp-footer">${ergebnisHTML}${statusHTML}</div>
+      </div>`;
+    });
+
+    html += '</div>';
+  });
+
+  container.innerHTML = html;
+}
+
+let tippSaveTimer = {};
+function onTippInput(input) {
+  const sid = input.dataset.sid;
+  const side = input.dataset.side;
+  const val = input.value === '' ? '' : Math.max(0, parseInt(input.value) || 0);
+  if (input.value !== '' && val !== parseInt(input.value)) input.value = val;
+
+  if (!tippCache[sid]) tippCache[sid] = {h:'', g:''};
+  tippCache[sid][side] = val;
+
+  clearTimeout(tippSaveTimer[sid]);
+  tippSaveTimer[sid] = setTimeout(() => saveTipp(sid), 600);
+}
+
+async function saveTipp(sid) {
+  if (!currentUser) return;
+  const t = tippCache[sid];
+  if (t.h === '' || t.g === '' || t.h === undefined || t.g === undefined) return;
+  try {
+    await dbUpdate('tipps/' + currentUser.nick, { [sid]: { h: +t.h, g: +t.g } });
+    // Fortschritt aktualisieren
+    let filled = 0;
+    ALL_SPIELE.forEach(s => {
+      const x = tippCache[s.id] || {};
+      if (x.h !== '' && x.h !== undefined && x.g !== '' && x.g !== undefined) filled++;
+    });
+    document.getElementById('prog-fill').style.width = Math.round(filled/48*100)+'%';
+    document.getElementById('prog-count').textContent = filled + ' / 48';
+  } catch(e) {
+    showToast('❌ Speichern fehlgeschlagen', 'error');
+  }
+}
+
+// ========================================================
+// ADMIN
+// ========================================================
+function doAdminLogin() {
+  const pw = document.getElementById('admin-pw-input').value;
+  const errEl = document.getElementById('admin-error');
+  if (pw !== window._ADMIN_PASSWORD) {
+    showErr(errEl, 'Falsches Passwort');
+    return;
+  }
+  adminLoggedIn = true;
+  document.getElementById('admin-login-wrap').style.display = 'none';
+  document.getElementById('admin-content').style.display = '';
+  document.getElementById('admin-nav-btn').style.display = '';
+  loadAdminErgebnisse();
+  showToast('✅ Admin eingeloggt', 'success');
+}
+
+function initAdminPage() {
+  if (!adminLoggedIn) return;
+  loadAdminErgebnisse();
+}
+
+async function loadAdminErgebnisse() {
+  const grid = document.getElementById('admin-ergebnisse-grid');
+  const ergebnisse = await dbGet('ergebnisse') || {};
+  ergebnisseCache = ergebnisse;
+
+  let html = '';
+  GRUPPEN.forEach(g => {
+    g.spiele.forEach(s => {
+      const e = ergebnisse[s.id] || { h: '', g: '' };
+      const saved = e.h !== '' && e.g !== '';
+      html += `<div class="ergebnis-admin-card">
+        <div class="era-top">
+          <div>
+            <div class="era-teams">
+              <span>${FLAGS[s.h]||'🏳️'}</span> ${s.h}
+              <span style="color:var(--text3)">vs</span>
+              ${FLAGS[s.g]||'🏳️'} ${s.g}
+            </div>
+            <div class="era-meta">Gruppe ${g.id} &nbsp;|&nbsp; ${s.d} ${s.z} &nbsp;|&nbsp; ${s.o}</div>
+          </div>
+        </div>
+        <div class="era-inputs">
+          <div class="era-score-box">
+            <input class="era-inp" type="number" min="0" max="99"
+              id="ea-h-${s.id}" value="${saved?e.h:''}" placeholder="–">
+            <span class="score-sep">:</span>
+            <input class="era-inp" type="number" min="0" max="99"
+              id="ea-g-${s.id}" value="${saved?e.g:''}" placeholder="–">
+          </div>
+          <button class="era-save-btn" onclick="saveAdminErgebnis('${s.id}')">Speichern</button>
+          <span class="era-saved" id="era-saved-${s.id}">${saved?'✓ Gespeichert':''}</span>
+        </div>
+      </div>`;
+    });
+  });
+  grid.innerHTML = html;
+}
+
+async function saveAdminErgebnis(sid) {
+  const hVal = document.getElementById('ea-h-' + sid).value;
+  const gVal = document.getElementById('ea-g-' + sid).value;
+  if (hVal === '' || gVal === '') { showToast('Beide Felder ausfüllen', 'error'); return; }
+  await dbUpdate('ergebnisse', { [sid]: { h: +hVal, g: +gVal } });
+  const savedEl = document.getElementById('era-saved-' + sid);
+  savedEl.style.display = 'inline';
+  savedEl.textContent = '✓ Gespeichert';
+  ergebnisseCache[sid] = { h: +hVal, g: +gVal };
+  showToast('✅ Ergebnis gespeichert', 'success');
+}
+
+function adminTab(tab) {
+  document.getElementById('admin-ergebnisse-wrap').style.display = tab === 'ergebnisse' ? '' : 'none';
+  document.getElementById('admin-mitarbeiter-wrap').style.display = tab === 'mitarbeiter' ? '' : 'none';
+  document.getElementById('atab-ergebnisse').classList.toggle('active', tab === 'ergebnisse');
+  document.getElementById('atab-mitarbeiter').classList.toggle('active', tab === 'mitarbeiter');
+  if (tab === 'mitarbeiter') loadMitarbeiter();
+}
+
+async function loadMitarbeiter() {
+  const tbody = document.getElementById('mitarbeiter-tbody');
+  const [spieler, alleTipps] = await Promise.all([dbGet('spieler'), dbGet('tipps')]);
+  if (!spieler) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text2);padding:20px">Keine Spieler</td></tr>'; return; }
+
+  let html = '';
+  Object.entries(spieler).forEach(([nick, info], i) => {
+    const tipps = alleTipps && alleTipps[nick] ? Object.keys(alleTipps[nick]).length : 0;
+    const regDate = info.registriert ? new Date(info.registriert).toLocaleDateString('de-DE') : '-';
+    html += `<tr>
+      <td style="color:var(--text2);text-align:center">${i+1}</td>
+      <td><strong>${nick}</strong></td>
+      <td>${info.vorname}</td>
+      <td>${info.nachname}</td>
+      <td style="color:var(--text2);font-size:13px">${regDate}</td>
+      <td style="text-align:center;color:var(--accent)">${tipps}</td>
+      <td>
+        <div style="display:flex;gap:6px">
+          <button class="btn-sm" onclick="openEditMitarbeiter('${nick}','${info.vorname}','${info.nachname}')">✏️ Edit</button>
+          <button class="btn-sm danger" onclick="deleteMitarbeiter('${nick}')">🗑️ Löschen</button>
+        </div>
+      </td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+}
+
+function openEditMitarbeiter(nick, vorname, nachname) {
+  document.getElementById('edit-nick-key').value = nick;
+  document.getElementById('edit-nick').value = nick;
+  document.getElementById('edit-first').value = vorname;
+  document.getElementById('edit-last').value = nachname;
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+async function saveEditMitarbeiter() {
+  const oldNick = document.getElementById('edit-nick-key').value;
+  const newNick = document.getElementById('edit-nick').value.trim();
+  const vorname = document.getElementById('edit-first').value.trim();
+  const nachname = document.getElementById('edit-last').value.trim();
+  if (!newNick || !vorname || !nachname) { showToast('Alle Felder ausfüllen', 'error'); return; }
+
+  await dbUpdate('spieler/' + oldNick, { vorname, nachname });
+  closeModal();
+  loadMitarbeiter();
+  showToast('✅ Gespeichert', 'success');
+}
+
+async function deleteMitarbeiter(nick) {
+  if (!confirm(`Mitarbeiter "${nick}" und alle Tipps löschen?`)) return;
+  await dbSet('spieler/' + nick, null);
+  await dbSet('tipps/' + nick, null);
+  loadMitarbeiter();
+  showToast('🗑️ Gelöscht', 'success');
+}
+
+function closeModal() { document.getElementById('edit-modal').classList.remove('open'); }
+
+// ========================================================
+// TOAST
+// ========================================================
+let toastTimer;
+function showToast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = '', 2800);
+}
+
+// Click outside modal
+document.getElementById('edit-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+</body>
+</html>
