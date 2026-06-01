@@ -299,6 +299,11 @@ tr:hover td{background:var(--s2)}
 
 <header id="hdr" style="display:none">
   <div class="hi">
+    <!-- Admin Quick Button - immer sichtbar oben links -->
+    <button id="adm-quick-btn" onclick="handleAdminClick(this)"
+      style="background:#fff0f0;border:1.5px solid #ffcdd2;border-radius:8px;color:#c62828;cursor:pointer;font-size:12px;font-weight:700;padding:6px 12px;white-space:nowrap;flex-shrink:0;transition:all .15s">
+      🔧 Admin
+    </button>
     <a class="logo" href="#">
       <div class="lbox">WM<br>26</div>
       <div class="ltxt">HeTec <span>Tippspiel</span></div>
@@ -747,6 +752,21 @@ function showErr(el,msg){el.textContent=msg;el.classList.add('show');}
 // ============================================================
 // NAV
 // ============================================================
+function handleAdminClick(btn) {
+  // Wenn bereits eingeloggt als Admin -> direkt zur Admin-Seite
+  if(adminIn) {
+    document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+    document.getElementById('adm-btn').classList.add('active');
+    showPageD('admin');
+    btn.style.background='#ffebee';
+    return;
+  }
+  // Wenn nicht eingeloggt -> zur Admin Login Seite
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  showPageD('admin');
+  btn.style.background='#ffebee';
+}
+
 function showPage(name,btn){
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
   if(btn)btn.classList.add('active');
