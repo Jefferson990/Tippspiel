@@ -23,6 +23,7 @@
     appId: "1:741658253298:web:904b0d35a02e7ae7f2fd6b"
   };
   window._ADMIN_PW = "HeTec2026!";
+  window._FOOTBALL_API_KEY = "7b2efd968738cfc0253ad76f4b47b11f";
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
   window._db=db; window._ref=ref; window._set=set; window._get=get; window._upd=update;
@@ -293,6 +294,16 @@ tr:hover td{background:var(--s2)}
 .schein-spiele{padding:12px 16px}
 .schein-spiel-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--b1);font-size:13px}
 .schein-spiel-row:last-child{border-bottom:none}
+.api-bar{background:linear-gradient(135deg,#e8f5e9,#e3f2fd);border:1.5px solid rgba(46,125,50,.2);border-radius:10px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.api-status{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.api-ok{background:#e8f5e9;color:#2e7d32;border:1px solid rgba(46,125,50,.2)}
+.api-err{background:#fdecea;color:#c62828;border:1px solid rgba(198,40,40,.2)}
+.btn-api{background:linear-gradient(135deg,#1565c0,#0d47a1);border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:13px;font-weight:700;padding:9px 16px;transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.btn-api:hover{opacity:.9;transform:translateY(-1px)}
+.btn-api:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.import-preview{background:var(--s1);border:1px solid var(--b1);border-radius:8px;padding:12px;margin-top:10px;max-height:320px;overflow-y:auto}
+.import-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--b1);font-size:12px}
+.import-row:last-child{border-bottom:none}
 .tipp-card{background:var(--s1);border:1px solid var(--b1);border-radius:10px;overflow:hidden;margin-bottom:10px;box-shadow:var(--shadow)}
 .tipp-card-header{padding:11px 14px;background:var(--s2);border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;gap:10px}
 .tipp-row{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--b1);font-size:13px;transition:background .1s}
@@ -712,13 +723,20 @@ tr:hover td{background:var(--s2)}
         <button class="nb" id="at-mit" onclick="admTab('mit')">👥 Mitarbeiter</button>
       </div>
       <div id="adm-gp-wrap">
-        <!-- Manuelle Ergebniseingabe Info -->
-        <div style="background:var(--green-light);border:1px solid rgba(46,125,50,.2);border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
-          <span style="font-size:20px">✏️</span>
-          <div style="font-size:12px;color:var(--green);font-weight:500">
-            <strong>Manuelle Ergebniseingabe</strong> — Woche wählen, Ergebnisse eintragen, Speichern. Dauert nur 5 Minuten pro Spieltag!
+        <!-- API Auto-Import Bar -->
+        <div class="api-bar">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:700;color:#1b5e20;margin-bottom:2px">🤖 Automatischer Ergebnis-Import</div>
+            <div style="font-size:11px;color:var(--txt2)">api-football.com · WM 2026 · <span id="api-key-status"></span></div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <span id="api-last-import" style="font-size:10px;color:var(--txt3)"></span>
+            <button class="btn-api" id="btn-auto-import" onclick="autoImportErgebnisse()">
+              🔄 Ergebnisse abrufen
+            </button>
           </div>
         </div>
+        <div id="import-preview-wrap" style="display:none"></div>
         <div class="wsel" id="adm-wsel" style="margin-bottom:12px"></div>
         <div class="adm-grid" id="adm-grid"></div>
       </div>
@@ -1609,8 +1627,8 @@ async function submitKOSchein(rundId, rundLabel){
 // ============================================================
 // ADMIN
 // ============================================================
-function doAdmLogin(){const pw=document.getElementById('apw').value,e=document.getElementById('ae');if(pw!==window._ADMIN_PW){showErr(e,'Falsches Passwort');return;}adminIn=true;document.getElementById('adm-login-wrap').style.display='none';document.getElementById('adm-content').style.display='';document.getElementById('adm-btn').style.display='';loadAdmGP();toast('✅ Admin eingeloggt','ok');}
-function initAdmin(){if(adminIn){loadAdmGP();}}
+function doAdmLogin(){const pw=document.getElementById('apw').value,e=document.getElementById('ae');if(pw!==window._ADMIN_PW){showErr(e,'Falsches Passwort');return;}adminIn=true;document.getElementById('adm-login-wrap').style.display='none';document.getElementById('adm-content').style.display='';document.getElementById('adm-btn').style.display='';loadAdmGP();initAdminApiCheck();toast('✅ Admin eingeloggt','ok');}
+function initAdmin(){if(adminIn){loadAdmGP();initAdminApiCheck();}}
 function admTab(t){
   ['gp','ko','uebersicht','mit'].forEach(x=>{
     document.getElementById('adm-'+x+'-wrap').style.display=t===x?'':'none';
@@ -2046,6 +2064,183 @@ async function loadAlleUebersicht(){
 
   html+='</div>';
   document.getElementById('uebersicht-content').innerHTML=html;
+}
+
+// ============================================================
+// API-FOOTBALL.COM — AUTO IMPORT
+// WM 2026: league=1, season=2026 | 100 Anfragen/Tag kostenlos
+// ============================================================
+
+const API_TEAM_MAP = {
+  'Brazil':'Brasilien','Haiti':'Haiti','Morocco':'Marokko','Scotland':'Schottland',
+  'Canada':'Kanada','Qatar':'Katar','Switzerland':'Schweiz',
+  'Bosnia and Herzegovina':'Bosnien-H.','Bosnia':'Bosnien-H.',
+  'Mexico':'Mexiko','South Africa':'Südafrika','South Korea':'Südkorea',
+  'Korea Republic':'Südkorea','Czech Republic':'Tschechien','Czechia':'Tschechien',
+  'France':'Frankreich','Senegal':'Senegal','Iraq':'Irak','Norway':'Norwegen',
+  'Spain':'Spanien','Cape Verde':'Kap Verde','Saudi Arabia':'Saudi-Arabien',
+  'Uruguay':'Uruguay','Belgium':'Belgien','Egypt':'Ägypten','Iran':'Iran',
+  'New Zealand':'Neuseeland','Netherlands':'Niederlande','Japan':'Japan',
+  'Sweden':'Schweden','Tunisia':'Tunesien','Germany':'Deutschland',
+  'Curacao':'Curacao','Curaçao':'Curacao',
+  "Ivory Coast":'Elfenbeinküste',"Côte d'Ivoire":'Elfenbeinküste',
+  'Ecuador':'Ecuador','USA':'USA','United States':'USA','Paraguay':'Paraguay',
+  'Australia':'Australien','Turkey':'Türkei','Turkiye':'Türkei',
+  'England':'England','Croatia':'Kroatien','Ghana':'Ghana','Panama':'Panama',
+  'Portugal':'Portugal','DR Congo':'D.R. Kongo','Congo DR':'D.R. Kongo',
+  'Uzbekistan':'Usbekistan','Colombia':'Kolumbien',
+  'Argentina':'Argentinien','Algeria':'Algerien','Austria':'Österreich','Jordan':'Jordanien'
+};
+
+function mapTeam(n){ return API_TEAM_MAP[n]||n; }
+function getApiKey(){ return window._FOOTBALL_API_KEY||''; }
+
+function updateApiKeyStatus(){
+  const el=document.getElementById('api-key-status');
+  if(!el)return;
+  const key=getApiKey();
+  el.innerHTML=key?'<span class="api-status api-ok">✅ Key aktiv</span>':'<span class="api-status api-err">❌ Kein Key</span>';
+}
+
+async function autoImportErgebnisse(){
+  const key=getApiKey();
+  if(!key){ toast('Kein API Key konfiguriert','er'); return; }
+  const btn=document.getElementById('btn-auto-import');
+  btn.disabled=true;
+  btn.innerHTML='⏳ Lade...';
+
+  try{
+    // Alle abgeschlossenen WM 2026 Spiele
+    const r=await fetch(
+      'https://v3.football.api-sports.io/fixtures?league=1&season=2026&status=FT',
+      { headers:{'x-apisports-key':key} }
+    );
+
+    if(!r.ok){
+      toast('API Fehler: '+r.status,'er');
+      btn.disabled=false; btn.innerHTML='🔄 Ergebnisse abrufen';
+      return;
+    }
+
+    const data=await r.json();
+
+    // Quota anzeigen
+    const used=data.response?.length||0;
+    const remaining=r.headers.get('x-ratelimit-requests-remaining');
+    const lastEl=document.getElementById('api-last-import');
+    if(lastEl) lastEl.textContent=`${new Date().toLocaleTimeString('de-DE')} · ${remaining||'?'} Abfragen übrig`;
+
+    const fixtures=data.response||[];
+    if(fixtures.length===0){
+      toast('Noch keine abgeschlossenen Spiele','er');
+      btn.disabled=false; btn.innerHTML='🔄 Ergebnisse abrufen';
+      return;
+    }
+
+    const updates={};
+    const preview=[];
+
+    fixtures.forEach(f=>{
+      const status=f.fixture.status.short;
+      if(!['FT','AET','PEN'].includes(status)) return;
+      const homeDE=mapTeam(f.teams.home.name);
+      const awayDE=mapTeam(f.teams.away.name);
+      const sh=f.goals.home, sa=f.goals.away;
+      if(sh===null||sa===null) return;
+      const spiel=ALL_GP.find(s=>s.h===homeDE&&s.g===awayDE);
+      if(spiel){
+        const ex=ergCache[spiel.id];
+        const changed=!ex||ex.h!==sh||ex.g!==sa;
+        updates[spiel.id]={h:sh,g:sa};
+        preview.push({id:spiel.id,home:homeDE,away:awayDE,sh,sa,changed});
+      }
+    });
+
+    if(Object.keys(updates).length===0){
+      document.getElementById('import-preview-wrap').innerHTML=`
+        <div style="background:var(--acc-light);border:1px solid rgba(232,168,0,.2);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--acc-dark)">
+          ℹ️ ${fixtures.length} Spiele in API gefunden, aber keine stimmen mit unserem Spielplan überein.<br>
+          Mögliche Ursache: Teamnamen leicht anders. Bitte manuell eintragen.
+        </div>`;
+      document.getElementById('import-preview-wrap').style.display='block';
+      btn.disabled=false; btn.innerHTML='🔄 Ergebnisse abrufen';
+      return;
+    }
+
+    showImportPreview(preview,updates);
+
+  }catch(e){
+    toast('Fehler: '+e.message,'er');
+    console.error(e);
+  }
+  btn.disabled=false;
+  btn.innerHTML='🔄 Ergebnisse abrufen';
+}
+
+function showImportPreview(preview,updates){
+  const wrap=document.getElementById('import-preview-wrap');
+  const neu=preview.filter(p=>p.changed).length;
+  const gleich=preview.filter(p=>!p.changed).length;
+
+  let html=`<div class="import-preview">
+    <div style="font-size:13px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:10px">
+      📋 <span>${preview.length} Ergebnisse</span>
+      <span style="color:var(--green);font-size:12px">● ${neu} neu</span>
+      ${gleich>0?`<span style="color:var(--txt3);font-size:12px">● ${gleich} unverändert</span>`:''}
+    </div>`;
+
+  preview.forEach(p=>{
+    html+=`<div class="import-row">
+      <span style="font-size:9px;font-weight:700;color:var(--txt3);min-width:28px">${p.id}</span>
+      ${flagImg(p.home,'flag-sm')}
+      <span style="font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.home}</span>
+      <span style="font-family:'Bebas Neue',cursive;font-size:20px;padding:2px 10px;border-radius:6px;
+        background:${p.changed?'var(--green-light)':'var(--s2)'};
+        border:1px solid ${p.changed?'rgba(46,125,50,.3)':'var(--b1)'};min-width:60px;text-align:center">
+        ${p.sh}:${p.sa}
+      </span>
+      <span style="font-weight:700;flex:1;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.away}</span>
+      ${flagImg(p.away,'flag-sm')}
+      <span style="font-size:9px;flex-shrink:0;min-width:44px;text-align:right;
+        color:${p.changed?'var(--green)':'var(--txt3)'}">
+        ${p.changed?'✓ Neu':'='}
+      </span>
+    </div>`;
+  });
+
+  html+=`<div style="display:flex;gap:8px;margin-top:12px">
+    <button class="btn-api" style="flex:1;justify-content:center;padding:10px"
+      onclick='confirmImport(${JSON.stringify(updates)})'>
+      ✅ Alle ${Object.keys(updates).length} speichern
+    </button>
+    <button onclick="document.getElementById('import-preview-wrap').style.display='none'"
+      style="background:var(--s2);border:1px solid var(--b1);border-radius:7px;
+      padding:8px 14px;cursor:pointer;font-size:12px;font-weight:600;color:var(--txt2)">
+      ✕ Abbrechen
+    </button>
+  </div></div>`;
+
+  wrap.innerHTML=html;
+  wrap.style.display='block';
+  wrap.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+async function confirmImport(updates){
+  try{
+    await dbUpd('ergebnisse',updates);
+    Object.assign(ergCache,updates);
+    document.getElementById('import-preview-wrap').style.display='none';
+    toast('✅ '+Object.keys(updates).length+' Ergebnisse importiert!','ok');
+    renderAdmGP();
+  }catch(e){
+    toast('Fehler beim Speichern','er');
+  }
+}
+
+function initAdminApiCheck(){
+  updateApiKeyStatus();
+  const el=document.getElementById('api-last-import');
+  if(el) el.textContent='Bereit — einmal täglich abrufen';
 }
 
 // ============================================================
