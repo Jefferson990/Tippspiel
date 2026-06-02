@@ -2,7 +2,11 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff">
 <title>HeTec WM Tippspiel 2026</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
@@ -53,7 +57,7 @@
   --shadow-md: 0 4px 16px rgba(0,0,0,.1), 0 1px 4px rgba(0,0,0,.06);
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--txt);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;font-size:14px}
+body{background:var(--bg);color:var(--txt);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;font-size:14px;-webkit-tap-highlight-color:transparent}
 
 /* LOADING */
 #ls{position:fixed;inset:0;background:var(--s1);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:18px}
@@ -175,7 +179,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .sbox{background:var(--s2);border:1.5px solid var(--b1);border-radius:8px;display:flex;align-items:center;gap:2px;padding:5px 7px;transition:all .15s;flex-shrink:0}
 .sbox:focus-within{border-color:var(--acc);background:var(--s1);box-shadow:0 0 0 3px rgba(232,168,0,.1)}
 .sbox.has-r{border-color:rgba(46,125,50,.3);background:var(--green-light)}
-.sinp{background:transparent;border:none;color:var(--txt);font-family:'Bebas Neue',cursive;font-size:24px;outline:none;text-align:center;width:30px;-moz-appearance:textfield}
+.sinp{background:transparent;border:none;color:var(--txt);font-family:'Bebas Neue',cursive;font-size:24px;outline:none;text-align:center;width:30px;-moz-appearance:textfield;-webkit-appearance:none;touch-action:manipulation}
 .sinp::-webkit-inner-spin-button,.sinp::-webkit-outer-spin-button{-webkit-appearance:none}
 .sinp:disabled{color:var(--txt3)}
 .ssep{color:var(--txt3);font-family:'Bebas Neue',cursive;font-size:18px}
@@ -292,20 +296,97 @@ tr:hover td{background:var(--s2)}
 .info-bar{background:var(--acc-light);border:1px solid rgba(232,168,0,.25);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--acc-dark);font-weight:500}
 .submit-bar{background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:18px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;box-shadow:var(--shadow)}
 .submit-bar.submitted{background:#f1f8e9;border-color:rgba(46,125,50,.25)}
-.btn-submit{background:var(--green);border:none;border-radius:9px;color:#fff;cursor:pointer;font-size:15px;font-weight:700;padding:12px 28px;transition:all .15s;white-space:nowrap;box-shadow:0 2px 8px rgba(46,125,50,.25)}
+.btn-submit{background:var(--green);border:none;border-radius:9px;color:#fff;cursor:pointer;font-size:15px;font-weight:700;padding:12px 28px;transition:all .15s;white-space:nowrap;box-shadow:0 2px 8px rgba(46,125,50,.25);touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .btn-submit:hover{background:#1b5e20;transform:translateY(-1px);box-shadow:0 4px 14px rgba(46,125,50,.3)}
 .btn-submit:disabled{background:var(--b2);color:var(--txt3);cursor:not-allowed;transform:none;box-shadow:none}
 .submitted-badge{display:inline-flex;align-items:center;gap:7px;background:var(--green-light);border:1.5px solid rgba(46,125,50,.3);border-radius:10px;padding:9px 16px;font-size:13px;font-weight:700;color:var(--green)}
 .week-locked-overlay{background:#f9fbe7;border:2px solid rgba(46,125,50,.2);border-radius:10px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:12px;font-size:13px;font-weight:600;color:var(--green)}
 
+/* ===== BOTTOM NAV MOBILE ===== */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:300;background:var(--s1);border-top:1px solid var(--b1);box-shadow:0 -4px 20px rgba(0,0,0,.08);padding:6px 8px 8px;padding-bottom:calc(6px + env(safe-area-inset-bottom))}
+.bottom-nav-inner{display:flex;gap:2px}
+.bn-btn{flex:1;background:transparent;border:none;border-radius:10px;color:var(--txt2);cursor:pointer;font-size:10px;font-weight:600;padding:7px 4px 5px;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:3px;letter-spacing:.2px}
+.bn-btn .bn-icon{font-size:20px;line-height:1}
+.bn-btn:hover,.bn-btn.active{background:var(--acc-light);color:var(--acc-dark)}
+.bn-btn.adm-bn{color:var(--red)}
+.bn-btn.adm-bn.active{background:var(--red-light);color:var(--red)}
+
 @media(max-width:700px){
-  .hi{padding:0 12px}.ltxt{font-size:16px}
-  nav{gap:1px}.nb{padding:5px 8px;font-size:11px}
-  main{padding:14px 12px 80px}
-  .spl-grid,.ko-grid,.adm-grid{grid-template-columns:1fr}
+  /* Header */
+  .hi{padding:0 10px;height:52px;gap:8px}
+  .ltxt{font-size:15px;letter-spacing:2px}
+  .lbox{font-size:10px;padding:3px 6px}
+  #adm-quick-btn{font-size:11px;padding:5px 9px}
+  /* Hide desktop nav, show bottom nav */
+  #mnav{display:none!important}
+  .bottom-nav{display:block}
+  main{padding:12px 10px calc(80px + env(safe-area-inset-bottom)) 10px}
+  /* Auth */
+  .auth-card{padding:22px 16px;border-radius:14px;margin:0 4px}
+  .atitle{font-size:34px}
   .two-col{grid-template-columns:1fr}
-  th,td{padding:8px 10px}
-  .auth-card{padding:24px 18px}
+  /* Grids */
+  .spl-grid{grid-template-columns:1fr;gap:7px}
+  .ko-grid{grid-template-columns:1fr;gap:7px}
+  .adm-grid{grid-template-columns:1fr;gap:7px}
+  /* Spielkarte */
+  .sc{padding:10px 12px}
+  .sc-meta{font-size:9px}
+  .tn{font-size:13px}
+  .flag{width:24px;height:17px}
+  .sinp{font-size:22px;width:28px}
+  .sbox{padding:4px 6px}
+  /* KO Karte */
+  .ko-card{padding:11px 12px}
+  .ko-team{padding:7px 9px}
+  .ko-team-name{font-size:13px}
+  .flag-lg{width:28px;height:19px}
+  /* Submit Bar */
+  .submit-bar{flex-direction:column;align-items:stretch;gap:10px;padding:14px}
+  .btn-submit{width:100%;padding:12px;font-size:14px}
+  .submitted-badge{font-size:12px}
+  /* Woche Buttons */
+  .wsel{gap:5px}
+  .wb{font-size:11px;padding:6px 10px;flex:1;text-align:center}
+  /* Winfo */
+  .winfo{padding:10px 12px;gap:8px;flex-wrap:wrap}
+  .wi-st{margin-left:0;margin-top:4px;width:100%}
+  /* Progress */
+  .pbar{padding:10px 12px}
+  /* Tabelle */
+  .tbl-wrap table{font-size:12px}
+  th,td{padding:8px 8px}
+  .rn{font-size:17px;width:28px}
+  .pts-big{font-size:20px}
+  .dots{max-width:80px}
+  .dot{width:5px;height:5px}
+  /* Hide some table columns on mobile */
+  .hide-mobile{display:none!important}
+  /* Gruppe Header */
+  .g-hdr{margin:18px 0 8px}
+  .g-badge{width:30px;height:30px;font-size:14px}
+  .g-info h3{font-size:14px}
+  /* Page title */
+  .pt{font-size:20px;margin-bottom:14px}
+  /* Tab row */
+  .tab-row{padding:3px}
+  .tab-btn{font-size:11px;padding:7px 8px}
+  /* Admin */
+  .eac{padding:10px 12px}
+  /* Verlauf Modal */
+  .verlauf-box{border-radius:14px;margin:0}
+  .verlauf-header{padding:14px 16px}
+  .verlauf-body{padding:14px 16px}
+  .schein-spiel-row{font-size:12px;gap:6px;flex-wrap:wrap}
+  /* User pill */
+  .upill{padding:3px 8px 3px 6px;font-size:11px}
+  .uav{width:22px;height:22px;font-size:11px}
+  /* User dropdown */
+  #user-dropdown{right:-10px;min-width:190px}
+}
+@media(max-width:400px){
+  .ltxt{display:none}
+  .tn{font-size:12px}
 }
 </style>
 </head>
@@ -361,6 +442,24 @@ tr:hover td{background:var(--s2)}
     </div>
   </div>
 </header>
+
+<!-- Mobile Bottom Navigation -->
+<div class="bottom-nav" id="bottom-nav" style="display:none">
+  <div class="bottom-nav-inner">
+    <button class="bn-btn active" id="bn-tabelle" onclick="showPageMobile('tabelle',this)">
+      <span class="bn-icon">🏆</span>Tabelle
+    </button>
+    <button class="bn-btn" id="bn-tipps" onclick="showPageMobile('tipps',this)">
+      <span class="bn-icon">⚽</span>Gruppen
+    </button>
+    <button class="bn-btn" id="bn-ko" onclick="showPageMobile('ko',this)">
+      <span class="bn-icon">🥊</span>KO-Runde
+    </button>
+    <button class="bn-btn adm-bn" id="bn-admin" onclick="showPageMobile('admin',this)">
+      <span class="bn-icon">🔧</span>Admin
+    </button>
+  </div>
+</div>
 
 <main id="amain" style="display:none">
 
@@ -800,14 +899,34 @@ function loginUser(nick,ud){
   document.getElementById('dd-shop').textContent='🏪 '+(ud.shop||'—');
   document.getElementById('mnav').style.display='';
   document.getElementById('uinfo').style.display='';
+  updateBottomNav(true);
   showPage('tabelle',document.querySelector('.nb'));loadTabelle();
 }
-function logout(){closeUserMenu();if(!confirm('Abmelden?'))return;CU=null;adminIn=false;localStorage.removeItem('hetec_nick');document.getElementById('adm-btn').style.display='none';document.getElementById('adm-content').style.display='none';document.getElementById('adm-login-wrap').style.display='';showAuthPage();}
+function logout(){closeUserMenu();if(!confirm('Abmelden?'))return;CU=null;adminIn=false;localStorage.removeItem('hetec_nick');document.getElementById('adm-btn').style.display='none';document.getElementById('adm-content').style.display='none';document.getElementById('adm-login-wrap').style.display='';updateBottomNav(false);showAuthPage();}
 function showErr(el,msg){el.textContent=msg;el.classList.add('show');}
 
 // ============================================================
 // NAV
 // ============================================================
+// Mobile navigation helper
+function showPageMobile(name, btn) {
+  // Update bottom nav active state
+  document.querySelectorAll('.bn-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  // Reuse showPage but without the desktop nav button update
+  showPageD(name);
+  if(name==='tabelle') loadTabelle();
+  if(name==='tipps') loadTipps();
+  if(name==='ko') loadKOTipps();
+  if(name==='admin') initAdmin();
+}
+
+// Show/hide bottom nav based on login state
+function updateBottomNav(loggedIn) {
+  const bn = document.getElementById('bottom-nav');
+  if(bn) bn.style.display = loggedIn ? 'block' : 'none';
+}
+
 function handleAdminClick(btn) {
   // Wenn bereits eingeloggt als Admin -> direkt zur Admin-Seite
   if(adminIn) {
@@ -826,6 +945,10 @@ function handleAdminClick(btn) {
 function showPage(name,btn){
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
   if(btn)btn.classList.add('active');
+  // Sync bottom nav
+  document.querySelectorAll('.bn-btn').forEach(b=>b.classList.remove('active'));
+  const bnBtn=document.getElementById('bn-'+name);
+  if(bnBtn)bnBtn.classList.add('active');
   showPageD(name);
   if(name==='tabelle')loadTabelle();
   if(name==='tipps')loadTipps();
@@ -881,10 +1004,10 @@ function renderTabelle(){
         <td><div class="shop-chip">🏪 ${r.info.shop||'—'}</div></td>
         <td class="pts-big">${r.p}</td>
         <td class="nc" style="color:var(--green)">${r.ex}</td>
-        <td class="nc" style="color:var(--blue)">${r.te}</td>
-        <td class="nc" style="color:var(--red)">${r.wr}</td>
-        <td class="nc" style="color:var(--acc-dark)">${r.ko}</td>
-        <td><div class="dots">${dotsH}</div></td>
+        <td class="nc hide-mobile" style="color:var(--blue)">${r.te}</td>
+        <td class="nc hide-mobile" style="color:var(--red)">${r.wr}</td>
+        <td class="nc hide-mobile" style="color:var(--acc-dark)">${r.ko}</td>
+        <td class="hide-mobile"><div class="dots">${dotsH}</div></td>
       </tr>`;
     });
     document.getElementById('tbl-body').innerHTML=h+'</tbody></table>';
