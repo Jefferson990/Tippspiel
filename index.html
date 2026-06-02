@@ -543,6 +543,96 @@ tr:hover td{background:var(--s2)}
   <!-- TABELLE -->
   <div id="page-tabelle" class="page">
     <div class="pt">🏆 Rangliste</div>
+
+    <!-- Preise & Regeln -->
+    <div style="background:var(--s1);border:1px solid var(--b1);border-radius:12px;margin-bottom:18px;overflow:hidden;box-shadow:var(--shadow)">
+      <div style="background:linear-gradient(135deg,#e8a800,#f5c030);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleRegeln()">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:22px">🏆</span>
+          <div>
+            <div style="font-size:15px;font-weight:700;color:#fff">Preise & Spielregeln</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.85)">Tippen &amp; Gewinnen — WM 2026</div>
+          </div>
+        </div>
+        <span id="regeln-arrow" style="color:#fff;font-size:16px">▾</span>
+      </div>
+      <div id="regeln-body" style="display:none;padding:18px 20px">
+
+        <!-- Punkte System -->
+        <div style="margin-bottom:18px">
+          <div style="font-size:13px;font-weight:700;color:var(--txt);margin-bottom:10px;display:flex;align-items:center;gap:6px">
+            <span style="background:var(--acc);color:#fff;border-radius:6px;padding:2px 8px;font-size:11px">PUNKTESYSTEM</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px">
+            <div style="background:var(--green-light);border:1px solid rgba(46,125,50,.2);border-radius:8px;padding:10px 12px;text-align:center">
+              <div style="font-family:'Bebas Neue',cursive;font-size:28px;color:var(--green)">3</div>
+              <div style="font-size:11px;font-weight:600;color:var(--green)">Exaktes Ergebnis</div>
+              <div style="font-size:10px;color:var(--txt2);margin-top:2px">z.B. 2:1 = 2:1</div>
+            </div>
+            <div style="background:var(--blue-light);border:1px solid rgba(21,101,192,.2);border-radius:8px;padding:10px 12px;text-align:center">
+              <div style="font-family:'Bebas Neue',cursive;font-size:28px;color:var(--blue)">1</div>
+              <div style="font-size:11px;font-weight:600;color:var(--blue)">Richtige Tendenz</div>
+              <div style="font-size:10px;color:var(--txt2);margin-top:2px">Sieger/Unentsch. richtig</div>
+            </div>
+            <div style="background:var(--red-light);border:1px solid rgba(229,57,53,.2);border-radius:8px;padding:10px 12px;text-align:center">
+              <div style="font-family:'Bebas Neue',cursive;font-size:28px;color:var(--red)">0</div>
+              <div style="font-size:11px;font-weight:600;color:var(--red)">Falsch getippt</div>
+              <div style="font-size:10px;color:var(--txt2);margin-top:2px">Alles andere</div>
+            </div>
+            <div style="background:var(--acc-light);border:1px solid rgba(232,168,0,.2);border-radius:8px;padding:10px 12px;text-align:center">
+              <div style="font-family:'Bebas Neue',cursive;font-size:28px;color:var(--acc-dark)">2</div>
+              <div style="font-size:11px;font-weight:600;color:var(--acc-dark)">KO-Runde Sieger</div>
+              <div style="font-size:10px;color:var(--txt2);margin-top:2px">Pro richtigen Weiterkommer</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tippschein Regeln -->
+        <div style="margin-bottom:18px">
+          <div style="font-size:13px;font-weight:700;color:var(--txt);margin-bottom:10px;display:flex;align-items:center;gap:6px">
+            <span style="background:var(--blue);color:#fff;border-radius:6px;padding:2px 8px;font-size:11px">TIPPSCHEIN</span>
+          </div>
+          <div style="background:var(--s2);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--txt2);line-height:1.7">
+            📅 <strong style="color:var(--txt)">Woche 1</strong> — sofort verfügbar ab Start des Turniers<br>
+            📅 <strong style="color:var(--txt)">Woche 2</strong> — Freischaltung am <strong style="color:var(--acc-dark)">14. Juni um 17:00 Uhr</strong><br>
+            📅 <strong style="color:var(--txt)">Woche 3</strong> — Freischaltung am <strong style="color:var(--acc-dark)">20. Juni um 17:00 Uhr</strong><br>
+            🥊 <strong style="color:var(--txt)">KO-Runde</strong> — wird nach Gruppenphase freigeschaltet<br>
+            <br>
+            ⚠️ <strong style="color:var(--red)">Wichtig:</strong> Nach Abgabe des Tippscheins sind <strong>keine Änderungen</strong> mehr möglich!
+            Sobald der erste Tipp einer Woche eingetragen wird, wird die Woche automatisch gesperrt.
+          </div>
+        </div>
+
+        <!-- Preise -->
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--txt);margin-bottom:10px;display:flex;align-items:center;gap:6px">
+            <span style="background:var(--red);color:#fff;border-radius:6px;padding:2px 8px;font-size:11px">PREISE</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div style="background:linear-gradient(135deg,#fff8e1,#fffde7);border:1.5px solid rgba(232,168,0,.3);border-radius:10px;padding:14px;text-align:center">
+              <div style="font-size:28px;margin-bottom:6px">🥇</div>
+              <div style="font-size:14px;font-weight:700;color:var(--txt)">Bester Einzeltipper</div>
+              <div style="font-size:11px;color:var(--txt2);margin:4px 0 8px">Pro Region</div>
+              <div style="background:var(--acc);color:#fff;border-radius:8px;padding:8px 12px;font-size:16px;font-weight:700">
+                💳 50 € Gutschein
+              </div>
+            </div>
+            <div style="background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border:1.5px solid rgba(46,125,50,.25);border-radius:10px;padding:14px;text-align:center">
+              <div style="font-size:28px;margin-bottom:6px">🏪</div>
+              <div style="font-size:14px;font-weight:700;color:var(--txt)">Bester Shop</div>
+              <div style="font-size:11px;color:var(--txt2);margin:4px 0 8px">Pro Region</div>
+              <div style="background:var(--green);color:#fff;border-radius:8px;padding:8px 12px;font-size:16px;font-weight:700">
+                🍽️ Team-Essen
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:10px;background:var(--s2);border-radius:8px;padding:10px 14px;font-size:11px;color:var(--txt3);line-height:1.6">
+            * Die Gewinner werden nach Abschluss des Turniers (19. Juli 2026) bekannt gegeben.
+            Jeder Mitarbeiter kann nur einmal gewinnen. Bei Punktegleichstand entscheidet die Anzahl der exakten Ergebnisse.
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="tab-row">
       <button class="tab-btn active" id="tab-g" onclick="switchTab('gesamt')">🌍 Gesamt</button>
       <button class="tab-btn" id="tab-s" onclick="switchTab('shop')">🏪 Shop-Rangliste</button>
@@ -706,10 +796,45 @@ function flagImg(t,cls='flag'){
 // SPIELPLAN
 // ============================================================
 const WOCHEN=[
-  {id:'W1',label:'Woche 1',dates:'11.–15. Jun',von:'2026-06-11',bis:'2026-06-15'},
-  {id:'W2',label:'Woche 2',dates:'16.–21. Jun',von:'2026-06-16',bis:'2026-06-21'},
-  {id:'W3',label:'Woche 3',dates:'22.–28. Jun',von:'2026-06-22',bis:'2026-06-28'},
+  {
+    id:'W1', label:'Woche 1', dates:'11.–15. Jun',
+    von:'2026-06-11', bis:'2026-06-15',
+    freischalt: null // sofort verfügbar
+  },
+  {
+    id:'W2', label:'Woche 2', dates:'16.–21. Jun',
+    von:'2026-06-16', bis:'2026-06-21',
+    freischalt: '2026-06-14T17:00:00' // 14. Juni 17:00 MESZ
+  },
+  {
+    id:'W3', label:'Woche 3', dates:'22.–28. Jun',
+    von:'2026-06-22', bis:'2026-06-28',
+    freischalt: '2026-06-20T17:00:00' // 20. Juni 17:00 MESZ
+  },
 ];
+
+// Prüft ob eine Woche bereits freigeschaltet ist
+function isWocheFreigeschaltet(w) {
+  if(!w.freischalt) return true; // W1 immer frei
+  const now = new Date();
+  const fs = new Date(w.freischalt);
+  return now >= fs;
+}
+
+// Countdown bis Freischaltung
+function getCountdown(w) {
+  if(!w.freischalt) return null;
+  const now = new Date();
+  const fs = new Date(w.freischalt);
+  const diff = fs - now;
+  if(diff <= 0) return null;
+  const d = Math.floor(diff / 86400000);
+  const h = Math.floor((diff % 86400000) / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  if(d > 0) return `in ${d}T ${h}h`;
+  if(h > 0) return `in ${h}h ${m}min`;
+  return `in ${m} Min`;
+}
 const GRUPPEN=[
   {id:'A',teams:['Brasilien','Haiti','Marokko','Schottland'],spiele:[
     {id:'A1',h:'Brasilien',g:'Marokko',d:'So 14.06.',dt:'2026-06-14',z:'0:00',o:'New York/NJ'},
@@ -1045,7 +1170,23 @@ function renderTabelle(){
 function isWLocked(wId){const w=WOCHEN.find(x=>x.id===wId);if(!w)return false;return ALL_GP.filter(s=>s.dt>=w.von&&s.dt<=w.bis).some(s=>{const e=ergCache[s.id];return e&&e.h!==undefined&&e.h!=='';});}
 function buildWsel(elId,active,cb){
   const el=document.getElementById(elId);
-  el.innerHTML=WOCHEN.map(w=>{const lk=isWLocked(w.id);return`<button class="wb${w.id===active?' active':''}${lk?' locked':''}" onclick="(${cb.toString()})('${w.id}')">${w.label}<br><small style="font-size:10px;opacity:.7">${w.dates}</small></button>`;}).join('');
+  el.innerHTML=WOCHEN.map(w=>{
+    const ergLk=isWLocked(w.id);
+    const frei=isWocheFreigeschaltet(w);
+    const countdown=getCountdown(w);
+    if(!frei){
+      // Noch gesperrt — nicht klickbar, zeige Countdown
+      return `<button class="wb" disabled style="opacity:.45;cursor:not-allowed;border-style:dashed">
+        ${w.label}<br>
+        <small style="font-size:9px;opacity:.8">🔒 ${countdown||w.dates}</small>
+      </button>`;
+    }
+    return `<button class="wb${w.id===active?' active':''}${ergLk?' locked':''}"
+      onclick="(${cb.toString()})('${w.id}')">
+      ${w.label}<br>
+      <small style="font-size:9px;opacity:.7">${w.dates}</small>
+    </button>`;
+  }).join('');
 }
 async function loadTipps(){
   if(!CU)return;
@@ -1057,11 +1198,39 @@ async function loadTipps(){
   tCache=mt||{};
   ergCache=erg||{};
   submitCache=sub||{};
+  // Auto-select the latest available (unlocked) week
+  const verfuegbar=WOCHEN.filter(w=>isWocheFreigeschaltet(w));
+  if(verfuegbar.length>0){
+    activeW=verfuegbar[verfuegbar.length-1].id;
+  }
   buildWsel('wsel',activeW,w=>{activeW=w;renderWoche();});
   renderWoche();
 }
 function renderWoche(){
   const w=WOCHEN.find(x=>x.id===activeW);
+
+  // Check if week is unlocked yet
+  if(!isWocheFreigeschaltet(w)){
+    const countdown=getCountdown(w);
+    const fsDate=new Date(w.freischalt).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    document.getElementById('pbar').style.display='none';
+    document.getElementById('tipps-content').innerHTML=`
+      <div style="background:var(--s1);border:2px dashed var(--b2);border-radius:14px;padding:40px 24px;text-align:center;margin-top:8px">
+        <div style="font-size:48px;margin-bottom:12px">🔒</div>
+        <div style="font-size:20px;font-weight:700;color:var(--txt);margin-bottom:6px">${w.label} noch gesperrt</div>
+        <div style="font-size:14px;color:var(--txt2);margin-bottom:16px">Freischaltung am <strong>${fsDate} Uhr</strong></div>
+        <div style="background:var(--acc-light);border:1px solid rgba(232,168,0,.3);border-radius:10px;padding:12px 20px;display:inline-block">
+          <div style="font-size:13px;color:var(--acc-dark);font-weight:600">⏳ Noch ${countdown||'...'}</div>
+        </div>
+        <div style="font-size:12px;color:var(--txt3);margin-top:14px">Die Tipps werden kurz vor Spielbeginn freigeschaltet</div>
+      </div>`;
+    document.getElementById('winfo').innerHTML=`
+      <span class="wi-lbl">Zeitraum</span><span class="wi-val">${w.dates}</span>
+      <span class="wi-st st-locked">🔒 Noch gesperrt</span>`;
+    buildWsel('wsel',activeW,wk=>{activeW=wk;renderWoche();});
+    return;
+  }
+
   const ergLocked=isWLocked(activeW);
   const submitted=!!(submitCache[activeW]&&submitCache[activeW].ts);
   // Tipp-Eingabe gesperrt wenn: Schein abgegeben ODER Ergebnisse eingetragen
@@ -1564,6 +1733,24 @@ async function delMit(nick){
 }
 function closeMo(){document.getElementById('edit-mo').classList.remove('open');}
 document.getElementById('edit-mo').addEventListener('click',function(e){if(e.target===this)closeMo();});
+// ============================================================
+// REGELN TOGGLE + COUNTDOWN REFRESH
+// ============================================================
+function toggleRegeln(){
+  const body=document.getElementById('regeln-body');
+  const arrow=document.getElementById('regeln-arrow');
+  const isOpen=body.style.display!=='none';
+  body.style.display=isOpen?'none':'block';
+  arrow.textContent=isOpen?'▾':'▴';
+}
+
+// Auto-refresh week buttons every minute to update countdown
+setInterval(()=>{
+  if(document.getElementById('page-tipps').classList.contains('active')){
+    buildWsel('wsel',activeW,w=>{activeW=w;renderWoche();});
+  }
+},60000);
+
 // ============================================================
 // USER DROPDOWN
 // ============================================================
