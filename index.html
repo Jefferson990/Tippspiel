@@ -726,17 +726,25 @@ tr:hover td{background:var(--s2)}
         <!-- API Auto-Import Bar -->
         <div class="api-bar">
           <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:700;color:#1b5e20;margin-bottom:2px">🤖 Automatischer Ergebnis-Import</div>
-            <div style="font-size:11px;color:var(--txt2)">api-football.com · WM 2026 · <span id="api-key-status"></span></div>
+            <div style="font-size:13px;font-weight:700;color:#1b5e20;margin-bottom:3px">
+              🤖 Automatischer Ergebnis-Import
+            </div>
+            <div style="font-size:11px;color:var(--txt2);margin-bottom:2px">
+              api-football.com · WM 2026 · <span id="api-key-status"></span>
+            </div>
+            <div style="font-size:10px;color:var(--txt2)" id="api-last-import">Lade...</div>
+            <div style="font-size:10px;color:var(--txt3);margin-top:3px">
+              ⏰ Auto-Import nach: 2:00 · 3:00 · 5:00 · 6:00 · 8:00 · 20:00 · 21:00 · 23:00 Uhr
+            </div>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-            <span id="api-last-import" style="font-size:10px;color:var(--txt3)"></span>
-            <button class="btn-api" id="btn-auto-import" onclick="autoImportErgebnisse()">
-              🔄 Ergebnisse abrufen
+          <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0">
+            <button class="btn-api" id="btn-auto-import" onclick="autoImportErgebnisse(false)">
+              🔄 Jetzt abrufen
             </button>
+            <div style="font-size:10px;color:var(--txt3);text-align:right">Max. 8 Abrufe/Tag</div>
           </div>
         </div>
-        <div id="import-preview-wrap" style="display:none"></div>
+        <div id="import-preview-wrap" style="display:none;margin-bottom:12px"></div>
         <div class="wsel" id="adm-wsel" style="margin-bottom:12px"></div>
         <div class="adm-grid" id="adm-grid"></div>
       </div>
@@ -2102,12 +2110,16 @@ function updateApiKeyStatus(){
   el.innerHTML=key?'<span class="api-status api-ok">✅ Key aktiv</span>':'<span class="api-status api-err">❌ Kein Key</span>';
 }
 
-async function autoImportErgebnisse(){
+async function autoImportErgebnisse(silent=false){
   const key=getApiKey();
-  if(!key){ toast('Kein API Key konfiguriert','er'); return; }
+  if(!key){ if(!silent) toast('Kein API Key konfiguriert','er'); return; }
   const btn=document.getElementById('btn-auto-import');
-  btn.disabled=true;
-  btn.innerHTML='⏳ Lade...';
+  if(btn){ btn.disabled=true; btn.innerHTML='⏳ Lade...'; }
+
+  // Tagesabruf zählen
+  const count = incrAbrufeHeute();
+  updateAbrufStatus();
+  console.log('API Abruf #'+count+' heute');
 
   try{
     // Alle abgeschlossenen WM 2026 Spiele
@@ -2157,17 +2169,29 @@ async function autoImportErgebnisse(){
     });
 
     if(Object.keys(updates).length===0){
-      document.getElementById('import-preview-wrap').innerHTML=`
-        <div style="background:var(--acc-light);border:1px solid rgba(232,168,0,.2);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--acc-dark)">
-          ℹ️ ${fixtures.length} Spiele in API gefunden, aber keine stimmen mit unserem Spielplan überein.<br>
-          Mögliche Ursache: Teamnamen leicht anders. Bitte manuell eintragen.
-        </div>`;
-      document.getElementById('import-preview-wrap').style.display='block';
-      btn.disabled=false; btn.innerHTML='🔄 Ergebnisse abrufen';
+      if(!silent){
+        document.getElementById('import-preview-wrap').innerHTML=`
+          <div style="background:var(--acc-light);border:1px solid rgba(232,168,0,.2);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--acc-dark)">
+            ℹ️ ${fixtures.length} Spiele in API gefunden, aber keine stimmen mit unserem Spielplan überein.<br>
+            Bitte ggf. manuell eintragen.
+          </div>`;
+        document.getElementById('import-preview-wrap').style.display='block';
+      }
+      if(btn){ btn.disabled=false; btn.innerHTML='🔄 Ergebnisse abrufen'; }
       return;
     }
 
-    showImportPreview(preview,updates);
+    if(silent){
+      // Auto-Modus: nur neue Ergebnisse direkt speichern ohne Vorschau
+      const newUpdates = {};
+      preview.filter(p=>p.changed).forEach(p=>{ newUpdates[p.id]=updates[p.id]; });
+      if(Object.keys(newUpdates).length > 0){
+        await confirmImport(newUpdates, true);
+        toast('🤖 Auto-Import: '+Object.keys(newUpdates).length+' neue Ergebnisse','ok');
+      }
+    } else {
+      showImportPreview(preview,updates);
+    }
 
   }catch(e){
     toast('Fehler: '+e.message,'er');
@@ -2225,22 +2249,111 @@ function showImportPreview(preview,updates){
   wrap.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
-async function confirmImport(updates){
+async function confirmImport(updates, silent=false){
   try{
     await dbUpd('ergebnisse',updates);
     Object.assign(ergCache,updates);
-    document.getElementById('import-preview-wrap').style.display='none';
-    toast('✅ '+Object.keys(updates).length+' Ergebnisse importiert!','ok');
+    if(!silent){
+      document.getElementById('import-preview-wrap').style.display='none';
+      toast('✅ '+Object.keys(updates).length+' Ergebnisse importiert!','ok');
+    }
     renderAdmGP();
+    updateAbrufStatus();
   }catch(e){
-    toast('Fehler beim Speichern','er');
+    if(!silent) toast('Fehler beim Speichern','er');
   }
+}
+
+// Spielzeiten WM 2026 (MESZ) — wann Spiele enden (~90+15 Min nach Anstoß)
+// Alle Anstoßzeiten aus dem Spielplan + 2h Puffer = Abrufzeitpunkte
+const SPIEL_ABRUF_ZEITEN = [
+  // Stunden (MESZ) wann automatisch abgerufen wird
+  // Basierend auf Anstoßzeiten: 0:00, 1:00, 3:00, 4:00, 6:00, 18:00, 19:00, 21:00, 22:00, 23:00
+  // +2h für Spielende = Abruf um:
+  2,   // nach 0:00 Uhr Spielen
+  3,   // nach 1:00 Uhr Spielen
+  5,   // nach 3:00 Uhr Spielen
+  6,   // nach 4:00 Uhr Spielen
+  8,   // nach 6:00 Uhr Spielen
+  20,  // nach 18:00 Uhr Spielen
+  21,  // nach 19:00 Uhr Spielen
+  23,  // nach 21:00 Uhr Spielen
+  24,  // nach 22:00 Uhr Spielen (= 0:00 nächster Tag → als 0 geprüft)
+  1,   // nach 23:00 Uhr Spielen
+];
+
+// Maximale Abrufe pro Tag
+const MAX_DAILY_ABRUFE = 8;
+
+function getTodayKey(){
+  return new Date().toISOString().slice(0,10); // "2026-06-14"
+}
+
+function getAbrufeHeute(){
+  const key = 'hetec_api_abrufe_' + getTodayKey();
+  return parseInt(localStorage.getItem(key)||'0');
+}
+
+function incrAbrufeHeute(){
+  const key = 'hetec_api_abrufe_' + getTodayKey();
+  const n = getAbrufeHeute() + 1;
+  localStorage.setItem(key, n);
+  return n;
+}
+
+function shouldAutoAbruf(){
+  // Prüft ob in der aktuellen Stunde ein Abruf sinnvoll ist
+  const now = new Date();
+  const h = now.getHours();
+  const abrufeHeute = getAbrufeHeute();
+  if(abrufeHeute >= MAX_DAILY_ABRUFE) return false;
+  // Ist aktuelle Stunde ein Abruf-Zeitpunkt?
+  return SPIEL_ABRUF_ZEITEN.includes(h) || SPIEL_ABRUF_ZEITEN.includes(h===0?24:h);
+}
+
+function getLastAutoAbruf(){
+  return localStorage.getItem('hetec_api_last_auto')||null;
+}
+
+function setLastAutoAbruf(){
+  localStorage.setItem('hetec_api_last_auto', new Date().toISOString());
+}
+
+function wasAlreadyAbrufenInThisHour(){
+  const last = getLastAutoAbruf();
+  if(!last) return false;
+  const lastH = new Date(last).getHours();
+  const nowH = new Date().getHours();
+  const lastDay = new Date(last).toDateString();
+  const nowDay = new Date().toDateString();
+  return lastH === nowH && lastDay === nowDay;
+}
+
+async function autoImportIfNeeded(){
+  if(!adminIn) return;
+  if(wasAlreadyAbrufenInThisHour()) return;
+  if(!shouldAutoAbruf()) return;
+  console.log('🤖 Auto-Import ausgelöst um', new Date().toLocaleTimeString('de-DE'));
+  setLastAutoAbruf();
+  await autoImportErgebnisse(true); // true = silent mode (kein Popup)
 }
 
 function initAdminApiCheck(){
   updateApiKeyStatus();
-  const el=document.getElementById('api-last-import');
-  if(el) el.textContent='Bereit — einmal täglich abrufen';
+  updateAbrufStatus();
+  // Auto-Import alle 15 Minuten prüfen wenn Admin eingeloggt
+  setInterval(autoImportIfNeeded, 15 * 60 * 1000);
+  // Sofort einmal prüfen
+  setTimeout(autoImportIfNeeded, 3000);
+}
+
+function updateAbrufStatus(){
+  const el = document.getElementById('api-last-import');
+  if(!el) return;
+  const abrufe = getAbrufeHeute();
+  const last = getLastAutoAbruf();
+  const lastStr = last ? new Date(last).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}) : '—';
+  el.innerHTML = `<span style="color:var(--green);font-weight:600">${abrufe}/${MAX_DAILY_ABRUFE}</span> heute · zuletzt: ${lastStr}`;
 }
 
 // ============================================================
