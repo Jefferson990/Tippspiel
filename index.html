@@ -23,12 +23,6 @@
     appId: "1:741658253298:web:904b0d35a02e7ae7f2fd6b"
   };
   window._ADMIN_PW = "HeTec2026!";
-  // ============================================================
-  // 🔑 FOOTBALL-DATA.ORG API KEY
-  // Kostenlos registrieren: https://www.football-data.org/client/register
-  // ============================================================
-  window._FOOTBALL_API_KEY = "DEIN_API_KEY_HIER";
-  window._WM2026_ID = "2000"; // FIFA World Cup 2026 Competition ID
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
   window._db=db; window._ref=ref; window._set=set; window._get=get; window._upd=update;
@@ -319,17 +313,7 @@ tr:hover td{background:var(--s2)}
 .pts-1{background:#e3f0ff;color:var(--blue);border:1px solid rgba(21,101,192,.2)}
 .pts-0{background:#fdecea;color:var(--red);border:1px solid rgba(229,57,53,.2)}
 .all-spieler-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
-.api-bar{background:linear-gradient(135deg,#e3f2fd,#f3e5f5);border:1.5px solid rgba(21,101,192,.2);border-radius:10px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.api-status{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap}
-.api-ok{background:#e8f5e9;color:#2e7d32;border:1px solid rgba(46,125,50,.2)}
-.api-err{background:#fdecea;color:#c62828;border:1px solid rgba(198,40,40,.2)}
-.api-loading{background:#fff8e1;color:#f57f17;border:1px solid rgba(245,127,23,.2)}
-.btn-api{background:linear-gradient(135deg,#1565c0,#0d47a1);border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:13px;font-weight:700;padding:9px 16px;transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:6px}
-.btn-api:hover{opacity:.9;transform:translateY(-1px)}
-.btn-api:disabled{opacity:.5;cursor:not-allowed;transform:none}
-.import-preview{background:var(--s1);border:1px solid var(--b1);border-radius:8px;padding:12px;margin-top:10px;max-height:300px;overflow-y:auto}
-.import-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--b1);font-size:12px}
-.import-row:last-child{border-bottom:none}
+
 .info-bar{background:var(--acc-light);border:1px solid rgba(232,168,0,.25);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--acc-dark);font-weight:500}
 .submit-bar{background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:18px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;box-shadow:var(--shadow)}
 .submit-bar.submitted{background:#f1f8e9;border-color:rgba(46,125,50,.25)}
@@ -728,23 +712,13 @@ tr:hover td{background:var(--s2)}
         <button class="nb" id="at-mit" onclick="admTab('mit')">👥 Mitarbeiter</button>
       </div>
       <div id="adm-gp-wrap">
-        <!-- API Auto-Import Bar -->
-        <div class="api-bar">
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:700;color:#1565c0;margin-bottom:2px">🤖 Automatischer Ergebnis-Import</div>
-            <div style="font-size:11px;color:#5c6bc0">football-data.org API · <span id="api-key-status"></span></div>
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-            <span id="api-last-import" style="font-size:10px;color:var(--txt3)"></span>
-            <button class="btn-api" id="btn-auto-import" onclick="autoImportErgebnisse()">
-              🔄 Ergebnisse abrufen
-            </button>
-            <button class="btn-api" style="background:linear-gradient(135deg,#6a1b9a,#4a148c)" onclick="openApiSettings()">
-              ⚙️ API Key
-            </button>
+        <!-- Manuelle Ergebniseingabe Info -->
+        <div style="background:var(--green-light);border:1px solid rgba(46,125,50,.2);border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+          <span style="font-size:20px">✏️</span>
+          <div style="font-size:12px;color:var(--green);font-weight:500">
+            <strong>Manuelle Ergebniseingabe</strong> — Woche wählen, Ergebnisse eintragen, Speichern. Dauert nur 5 Minuten pro Spieltag!
           </div>
         </div>
-        <div id="import-preview-wrap" style="display:none"></div>
         <div class="wsel" id="adm-wsel" style="margin-bottom:12px"></div>
         <div class="adm-grid" id="adm-grid"></div>
       </div>
@@ -788,32 +762,6 @@ tr:hover td{background:var(--s2)}
     </div>
   </div>
 </main>
-
-<!-- API Settings Modal -->
-<div class="mo" id="api-mo" onclick="if(event.target===this)closeApiMo()">
-  <div class="mb" style="max-width:480px">
-    <div class="mt2">⚙️ API Einstellungen</div>
-    <div style="background:#e3f2fd;border:1px solid rgba(21,101,192,.2);border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:#1565c0;line-height:1.6">
-      <strong>Kostenlos registrieren:</strong><br>
-      1. Gehe zu <a href="https://www.football-data.org/client/register" target="_blank" style="color:#0d47a1;font-weight:700">football-data.org/client/register</a><br>
-      2. E-Mail bestätigen → API Key per E-Mail erhalten<br>
-      3. Key hier eintragen → Fertig! ✅
-    </div>
-    <div class="fg">
-      <label class="fl">API Key</label>
-      <input class="fi" id="api-key-input" type="text" placeholder="z.B. abc123def456..." style="font-family:monospace;font-size:13px">
-    </div>
-    <div style="background:var(--s2);border-radius:8px;padding:10px;margin-bottom:14px;font-size:11px;color:var(--txt2)">
-      💡 Der API Key wird lokal in deinem Browser gespeichert (nicht in Firebase).
-      Kostenlos bis 10 Anfragen/Minute — mehr als genug!
-    </div>
-    <div style="display:flex;gap:8px">
-      <button class="btn-p" style="flex:1;font-size:14px;padding:10px" onclick="saveApiKey()">💾 Speichern & Testen</button>
-      <button class="btn-o" onclick="closeApiMo()">Abbrechen</button>
-    </div>
-    <div id="api-test-result" style="margin-top:10px;font-size:12px;display:none"></div>
-  </div>
-</div>
 
 <!-- Tippschein Verlauf Modal -->
 <div class="verlauf-modal" id="verlauf-modal" onclick="closeVerlaufOnBg(event)">
@@ -1662,7 +1610,7 @@ async function submitKOSchein(rundId, rundLabel){
 // ADMIN
 // ============================================================
 function doAdmLogin(){const pw=document.getElementById('apw').value,e=document.getElementById('ae');if(pw!==window._ADMIN_PW){showErr(e,'Falsches Passwort');return;}adminIn=true;document.getElementById('adm-login-wrap').style.display='none';document.getElementById('adm-content').style.display='';document.getElementById('adm-btn').style.display='';loadAdmGP();toast('✅ Admin eingeloggt','ok');}
-function initAdmin(){if(adminIn){loadAdmGP();initAdminApiCheck();}}
+function initAdmin(){if(adminIn){loadAdmGP();}}
 function admTab(t){
   ['gp','ko','uebersicht','mit'].forEach(x=>{
     document.getElementById('adm-'+x+'-wrap').style.display=t===x?'':'none';
@@ -2098,224 +2046,6 @@ async function loadAlleUebersicht(){
 
   html+='</div>';
   document.getElementById('uebersicht-content').innerHTML=html;
-}
-
-// ============================================================
-// FOOTBALL API — AUTO IMPORT
-// ============================================================
-
-// Mapping: unsere Spiel-IDs zu Teamnames die die API liefert
-// API liefert englische Namen — wir mappen zu unseren deutschen
-const API_TEAM_MAP = {
-  'Brazil':'Brasilien','Haiti':'Haiti','Morocco':'Morocco',
-  'Scotland':'Schottland','Canada':'Kanada','Qatar':'Katar',
-  'Switzerland':'Schweiz','Bosnia and Herzegovina':'Bosnien-H.',
-  'Mexico':'Mexiko','South Africa':'Südafrika','Korea Republic':'Südkorea',
-  'Czechia':'Tschechien','France':'Frankreich','Senegal':'Senegal',
-  'Iraq':'Irak','Norway':'Norwegen','Spain':'Spanien',
-  'Cape Verde':'Kap Verde','Saudi Arabia':'Saudi-Arabien','Uruguay':'Uruguay',
-  'Belgium':'Belgien','Egypt':'Ägypten','Iran':'Iran','New Zealand':'Neuseeland',
-  'Netherlands':'Niederlande','Japan':'Japan','Sweden':'Schweden','Tunisia':'Tunesien',
-  'Germany':'Deutschland','Curaçao':'Curacao',"Côte d'Ivoire":'Elfenbeinküste',
-  'Ecuador':'Ecuador','USA':'USA','Paraguay':'Paraguay',
-  'Australia':'Australien','Turkey':'Türkei','England':'England',
-  'Croatia':'Kroatien','Ghana':'Ghana','Panama':'Panama',
-  'Portugal':'Portugal','DR Congo':'D.R. Kongo','Uzbekistan':'Usbekistan',
-  'Colombia':'Kolumbien','Argentina':'Argentinien','Algeria':'Algerien',
-  'Austria':'Österreich','Jordan':'Jordanien'
-};
-
-function getApiKey(){
-  return localStorage.getItem('hetec_api_key') || window._FOOTBALL_API_KEY || '';
-}
-
-function openApiSettings(){
-  const key=getApiKey();
-  document.getElementById('api-key-input').value=key==='DEIN_API_KEY_HIER'?'':key;
-  document.getElementById('api-test-result').style.display='none';
-  document.getElementById('api-mo').classList.add('open');
-  updateApiKeyStatus();
-}
-
-function closeApiMo(){
-  document.getElementById('api-mo').classList.remove('open');
-}
-
-function updateApiKeyStatus(){
-  const key=getApiKey();
-  const el=document.getElementById('api-key-status');
-  if(!el)return;
-  if(!key||key==='DEIN_API_KEY_HIER'){
-    el.innerHTML='<span class="api-status api-err">❌ Kein API Key</span>';
-  } else {
-    el.innerHTML='<span class="api-status api-ok">✅ API Key gesetzt</span>';
-  }
-}
-
-async function saveApiKey(){
-  const key=document.getElementById('api-key-input').value.trim();
-  if(!key){toast('API Key eingeben','er');return;}
-  localStorage.setItem('hetec_api_key',key);
-  // Test the key
-  const resEl=document.getElementById('api-test-result');
-  resEl.style.display='block';
-  resEl.innerHTML='<span style="color:var(--acc-dark)">⏳ Teste API Key...</span>';
-  try{
-    const r=await fetch('https://api.football-data.org/v4/competitions/2000',{
-      headers:{'X-Auth-Token':key}
-    });
-    if(r.ok){
-      resEl.innerHTML='<span style="color:var(--green)">✅ API Key funktioniert! WM 2026 gefunden.</span>';
-      toast('✅ API Key gespeichert & getestet','ok');
-      updateApiKeyStatus();
-      setTimeout(closeApiMo,1500);
-    } else {
-      resEl.innerHTML=`<span style="color:var(--red)">❌ Fehler: ${r.status} — Key ungültig oder keine Berechtigung</span>`;
-    }
-  }catch(e){
-    resEl.innerHTML='<span style="color:var(--red)">❌ Verbindungsfehler — CORS? Versuche es im Browser</span>';
-  }
-}
-
-async function autoImportErgebnisse(){
-  const key=getApiKey();
-  if(!key||key==='DEIN_API_KEY_HIER'){
-    toast('Erst API Key eintragen! Klick auf ⚙️','er');
-    openApiSettings();
-    return;
-  }
-
-  const btn=document.getElementById('btn-auto-import');
-  btn.disabled=true;
-  btn.innerHTML='⏳ Lade Ergebnisse...';
-
-  try{
-    // Fetch all WM 2026 matches
-    const r=await fetch('https://api.football-data.org/v4/competitions/2000/matches?status=FINISHED',{
-      headers:{'X-Auth-Token':key}
-    });
-
-    if(!r.ok){
-      if(r.status===403){
-        toast('API Key hat keine WM-Berechtigung. Free Tier reicht nicht — Tier One nötig.','er');
-        showApiError('❌ API Key braucht Tier One Zugang für WM 2026. Upgrade auf football-data.org nötig (ca. 12€/Monat).');
-      } else {
-        toast('API Fehler: '+r.status,'er');
-      }
-      btn.disabled=false;btn.innerHTML='🔄 Ergebnisse abrufen';
-      return;
-    }
-
-    const data=await r.json();
-    const matches=data.matches||[];
-
-    if(matches.length===0){
-      toast('Keine abgeschlossenen Spiele gefunden','er');
-      btn.disabled=false;btn.innerHTML='🔄 Ergebnisse abrufen';
-      return;
-    }
-
-    // Match API results to our game IDs
-    const updates={};
-    const preview=[];
-
-    matches.forEach(m=>{
-      if(m.status!=='FINISHED')return;
-      const homeDE=API_TEAM_MAP[m.homeTeam.name]||m.homeTeam.name;
-      const awayDE=API_TEAM_MAP[m.awayTeam.name]||m.awayTeam.name;
-      const homeScore=m.score.fullTime.home;
-      const awayScore=m.score.fullTime.away;
-      if(homeScore===null||awayScore===null)return;
-
-      // Find matching game in our data
-      const spiel=ALL_GP.find(s=>s.h===homeDE&&s.g===awayDE);
-      if(spiel){
-        const existing=ergCache[spiel.id];
-        const changed=!existing||existing.h!==homeScore||existing.g!==awayScore;
-        updates[spiel.id]={h:homeScore,g:awayScore};
-        preview.push({id:spiel.id,home:homeDE,away:awayDE,sh:homeScore,sa:awayScore,changed});
-      }
-    });
-
-    if(Object.keys(updates).length===0){
-      toast('Keine passenden Spiele in der API gefunden','er');
-      btn.disabled=false;btn.innerHTML='🔄 Ergebnisse abrufen';
-      return;
-    }
-
-    // Show preview before saving
-    showImportPreview(preview, updates);
-
-  }catch(e){
-    toast('Fehler beim API-Abruf: '+e.message,'er');
-    console.error(e);
-  }
-  btn.disabled=false;
-  btn.innerHTML='🔄 Ergebnisse abrufen';
-  const now=new Date().toLocaleTimeString('de-DE');
-  const el=document.getElementById('api-last-import');
-  if(el)el.textContent='Zuletzt: '+now;
-}
-
-function showImportPreview(preview, updates){
-  const wrap=document.getElementById('import-preview-wrap');
-  const newCount=preview.filter(p=>p.changed).length;
-
-  let html=`<div class="import-preview">
-    <div style="font-size:13px;font-weight:700;color:var(--txt);margin-bottom:10px">
-      📋 ${preview.length} Ergebnisse gefunden — <span style="color:var(--green)">${newCount} neu/geändert</span>
-    </div>`;
-
-  preview.forEach(p=>{
-    html+=`<div class="import-row">
-      <span style="font-size:9px;color:var(--txt3);min-width:28px">${p.id}</span>
-      ${flagImg(p.home,'flag-sm')} <span style="font-weight:600;flex:1">${p.home}</span>
-      <span style="font-family:'Bebas Neue',cursive;font-size:18px;background:${p.changed?'var(--green-light)':'var(--s2)'};border:1px solid ${p.changed?'rgba(46,125,50,.3)':'var(--b1)'};border-radius:6px;padding:2px 8px">${p.sh}:${p.sa}</span>
-      <span style="font-weight:600;flex:1;text-align:right">${p.away}</span> ${flagImg(p.away,'flag-sm')}
-      ${p.changed?'<span class="api-status api-ok" style="font-size:9px">Neu</span>':'<span style="font-size:9px;color:var(--txt3)">Gleich</span>'}
-    </div>`;
-  });
-
-  html+=`<div style="display:flex;gap:8px;margin-top:12px">
-    <button class="btn-api" style="flex:1;justify-content:center" onclick="confirmImport(${JSON.stringify(updates).replace(/"/g,'&quot;')})">
-      ✅ Alle ${Object.keys(updates).length} Ergebnisse speichern
-    </button>
-    <button onclick="document.getElementById('import-preview-wrap').style.display='none'" style="background:var(--s2);border:1px solid var(--b1);border-radius:7px;padding:8px 14px;cursor:pointer;font-size:12px;font-weight:600">
-      ✕ Abbrechen
-    </button>
-  </div></div>`;
-
-  wrap.innerHTML=html;
-  wrap.style.display='block';
-  wrap.scrollIntoView({behavior:'smooth',block:'nearest'});
-}
-
-async function confirmImport(updates){
-  try{
-    await dbUpd('ergebnisse', updates);
-    Object.assign(ergCache, updates);
-    document.getElementById('import-preview-wrap').style.display='none';
-    toast('✅ '+Object.keys(updates).length+' Ergebnisse importiert!','ok');
-    renderAdmGP();
-  }catch(e){
-    toast('Fehler beim Speichern','er');
-  }
-}
-
-function showApiError(msg){
-  const wrap=document.getElementById('import-preview-wrap');
-  wrap.innerHTML=`<div style="background:var(--red-light);border:1px solid rgba(229,57,53,.2);border-radius:8px;padding:14px;font-size:13px;color:var(--red)">${msg}</div>`;
-  wrap.style.display='block';
-}
-
-// Auto-import beim Admin-Login (falls API Key vorhanden)
-function initAdminApiCheck(){
-  updateApiKeyStatus();
-  const key=getApiKey();
-  if(key&&key!=='DEIN_API_KEY_HIER'){
-    const el=document.getElementById('api-last-import');
-    if(el)el.textContent='Bereit';
-  }
 }
 
 // ============================================================
