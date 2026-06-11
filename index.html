@@ -1016,6 +1016,9 @@ const GRUPPEN=[
 const ALL_GP=[];
 GRUPPEN.forEach(g=>g.spiele.forEach(s=>ALL_GP.push({...s,gruppe:g.id})));
 
+// Admin Wochen-/Tagesfilter: Admin darf jede Woche unabhängig von Freischaltung ansehen
+let admDay='all';
+
 const KO_RUNDEN=[
   {id:'AF',label:'Achtelfinale',icon:'⚔️',spiele:[
     {id:'AF1',label:'AF1',d:'Sa 04.07.',o:'Houston'},{id:'AF2',label:'AF2',d:'Sa 04.07.',o:'Philadelphia'},
@@ -1648,27 +1651,87 @@ function admTab(t){
   if(t==='uebersicht')initUebersicht();
 }
 
-async function loadAdmGP(){const erg=await dbGet('ergebnisse')||{};ergCache=erg;buildWsel('adm-wsel',admW,w=>{admW=w;renderAdmGP();});renderAdmGP();}
+async function loadAdmGP(){
+  const erg=await dbGet('ergebnisse')||{};
+  ergCache=erg;
+  buildAdmWsel();
+  renderAdmGP();
+}
+
+function buildAdmWsel(){
+  const el=document.getElementById('adm-wsel');
+  if(!el)return;
+  el.innerHTML=WOCHEN.map(w=>{
+    const count=ALL_GP.filter(s=>s.dt>=w.von&&s.dt<=w.bis).length;
+    return `<button class="wb${w.id===admW?' active':''}" onclick="admW='${w.id}';admDay='all';buildAdmWsel();renderAdmGP();">
+      ${w.label}<br><small style="font-size:9px;opacity:.75">${w.dates} · ${count} Spiele</small>
+    </button>`;
+  }).join('');
+}
+
+function buildAdmDayFilter(spiele){
+  const days=[...new Set(spiele.map(s=>s.dt))].sort();
+  const btnStyle='background:var(--s1);border:1.5px solid var(--b1);border-radius:8px;color:var(--txt2);cursor:pointer;font-size:12px;font-weight:600;padding:7px 12px;box-shadow:var(--shadow)';
+  const activeStyle='background:var(--acc-light);border-color:var(--acc);color:var(--acc-dark)';
+  let html=`<div style="background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:12px 14px;margin-bottom:14px;box-shadow:var(--shadow)">
+    <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:10px">📅 Tagesfilter innerhalb der Woche</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">`;
+  html+=`<button style="${btnStyle};${admDay==='all'?activeStyle:''}" onclick="admDay='all';renderAdmGP();">Alle Tage<br><small>${spiele.length} Spiele</small></button>`;
+  days.forEach(d=>{
+    const count=spiele.filter(s=>s.dt===d).length;
+    const label=new Date(d+'T12:00:00').toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'});
+    html+=`<button style="${btnStyle};${admDay===d?activeStyle:''}" onclick="admDay='${d}';renderAdmGP();">${label}<br><small>${count} Spiele</small></button>`;
+  });
+  html+='</div></div>';
+  return html;
+}
+
 function renderAdmGP(){
-  const w=WOCHEN.find(x=>x.id===admW);const spiele=ALL_GP.filter(s=>s.dt>=w.von&&s.dt<=w.bis);
-  const grs=GRUPPEN.filter(g=>g.spiele.some(s=>spiele.find(x=>x.id===s.id)));
+  const w=WOCHEN.find(x=>x.id===admW)||WOCHEN[0];
+  const weekSpiele=ALL_GP.filter(s=>s.dt>=w.von&&s.dt<=w.bis).sort((a,b)=>(a.dt+a.z).localeCompare(b.dt+b.z));
+  const spiele=admDay==='all'?weekSpiele:weekSpiele.filter(s=>s.dt===admDay);
   let html='';
-  grs.forEach(gr=>{
-    const wsp=gr.spiele.filter(s=>spiele.find(x=>x.id===s.id));
-    html+=`<div class="g-hdr"><div class="g-badge">${gr.id}</div><div class="g-info"><h3>Gruppe ${gr.id}</h3></div></div><div class="adm-grid">`;
-    wsp.forEach(s=>{
-      const e=ergCache[s.id]||{h:'',g:''};const saved=e.h!==''&&e.h!==undefined;
-      html+=`<div class="eac"><div class="eac-teams">${flagImg(s.h,'flag-sm')} ${s.h} <span style="color:var(--txt3);font-size:12px">vs</span> ${flagImg(s.g,'flag-sm')} ${s.g}</div>
-        <div class="eac-meta">📅 ${s.d} ${s.z} · 📍 ${s.o}</div>
-        <div class="eac-row">
-          <div class="easbox"><input class="eainp" type="number" min="0" max="99" id="ea-h-${s.id}" value="${saved?e.h:''}"><span class="ssep">:</span><input class="eainp" type="number" min="0" max="99" id="ea-g-${s.id}" value="${saved?e.g:''}"></div>
-          <button class="ea-btn" onclick="saveAdmErg('${s.id}')">💾 Speichern</button>
-          <span class="ea-ok" id="ea-ok-${s.id}" style="${saved?'':'display:none'}">${saved?'✓':''}</span>
-        </div></div>`;
-    });html+='</div>';
+
+  html+=`<div class="winfo" style="margin-bottom:14px">
+    <span class="wi-lbl">Admin Ansicht</span>
+    <span class="wi-val">${w.label} · ${w.dates}</span>
+    <span class="wi-lbl">Spiele in Woche</span>
+    <span class="wi-val">${weekSpiele.length}</span>
+    <span class="wi-lbl">Aktuell sichtbar</span>
+    <span class="wi-val">${spiele.length}</span>
+  </div>`;
+  html+=buildAdmDayFilter(weekSpiele);
+
+  if(!spiele.length){
+    document.getElementById('adm-grid').innerHTML=html+`<div class="empty"><h3>Keine Spiele</h3><p>Für diesen Filter wurden keine Spiele gefunden.</p></div>`;
+    return;
+  }
+
+  const days=[...new Set(spiele.map(s=>s.dt))].sort();
+  days.forEach(day=>{
+    const dayLabel=new Date(day+'T12:00:00').toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
+    const daySpiele=spiele.filter(s=>s.dt===day);
+    html+=`<div style="margin:18px 0 10px;padding:10px 14px;border-radius:10px;background:var(--acc-light);border:1px solid rgba(232,168,0,.25);font-weight:800;color:var(--acc-dark)">📅 ${dayLabel} · ${daySpiele.length} Spiel(e)</div>`;
+
+    const grs=GRUPPEN.filter(g=>g.spiele.some(gs=>daySpiele.find(x=>x.id===gs.id)));
+    grs.forEach(gr=>{
+      const wsp=gr.spiele.filter(gs=>daySpiele.find(x=>x.id===gs.id));
+      html+=`<div class="g-hdr"><div class="g-badge">${gr.id}</div><div class="g-info"><h3>Gruppe ${gr.id}</h3><p>${gr.teams.map(t=>`<span class="g-team-pill">${flagImg(t,'flag-sm')}${t}</span>`).join(' ')}</p></div></div><div class="adm-grid">`;
+      wsp.forEach(s=>{
+        const e=ergCache[s.id]||{h:'',g:''};
+        const saved=e.h!==''&&e.h!==undefined&&e.g!==''&&e.g!==undefined;
+        html+=`<div class="eac"><div class="eac-teams">${flagImg(s.h,'flag-sm')} ${s.h} <span style="color:var(--txt3);font-size:12px">vs</span> ${flagImg(s.g,'flag-sm')} ${s.g}</div>
+          <div class="eac-meta">📅 ${s.d} ${s.z} · 📍 ${s.o} · Gruppe ${s.gruppe}</div>
+          <div class="eac-row">
+            <div class="easbox"><input class="eainp" type="number" min="0" max="99" id="ea-h-${s.id}" value="${saved?e.h:''}"><span class="ssep">:</span><input class="eainp" type="number" min="0" max="99" id="ea-g-${s.id}" value="${saved?e.g:''}"></div>
+            <button class="ea-btn" onclick="saveAdmErg('${s.id}')">💾 Speichern</button>
+            <span class="ea-ok" id="ea-ok-${s.id}" style="${saved?'':'display:none'}">${saved?'✓':''}</span>
+          </div></div>`;
+      });
+      html+='</div>';
+    });
   });
   document.getElementById('adm-grid').innerHTML=html;
-  buildWsel('adm-wsel',admW,w=>{admW=w;renderAdmGP();});
 }
 async function saveAdmErg(sid){
   const hv=document.getElementById('ea-h-'+sid).value,gv=document.getElementById('ea-g-'+sid).value;
