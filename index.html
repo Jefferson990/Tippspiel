@@ -662,6 +662,19 @@ tr:hover td{background:var(--s2)}
             * Die Gewinner werden nach Abschluss des Turniers (19. Juli 2026) bekannt gegeben.
             Jeder Mitarbeiter kann nur einmal gewinnen. Bei Punktegleichstand entscheidet die Anzahl der exakten Ergebnisse.
           </div>
+
+          <div style="margin-top:12px;background:var(--blue-light);border:1.5px solid rgba(21,101,192,.22);border-radius:10px;padding:14px 16px;font-size:12px;color:var(--txt2);line-height:1.75">
+            <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:6px">🏪 Erklärung Shop-Rangliste</div>
+            Die Shop-Rangliste ist bewusst fair aufgebaut, damit kleinere Shops nicht gegen größere Shops benachteiligt werden.<br>
+            <strong style="color:var(--txt)">Hauptwertung:</strong> Durchschnittspunkte pro Mitarbeiter.<br>
+            <strong style="color:var(--txt)">Formel:</strong> Shop-Ø = Gesamtpunkte aller Mitarbeiter ÷ Anzahl Mitarbeiter.<br><br>
+            <strong style="color:var(--txt)">Beispiel:</strong><br>
+            O2 Crailsheim: 3 Mitarbeiter, 30 Gesamtpunkte → Ø 10,0 Punkte.<br>
+            O2 Aalen: 5 Mitarbeiter, 40 Gesamtpunkte → Ø 8,0 Punkte.<br>
+            Dadurch wäre Crailsheim trotz weniger Gesamtpunkte vorne, weil die Leistung pro Mitarbeiter stärker ist.<br><br>
+            <strong style="color:var(--txt)">Bei Gleichstand entscheidet:</strong><br>
+            1. höhere Gesamtpunkte · 2. bester Einzelspieler · 3. Anzahl Mitarbeiter.
+          </div>
         </div>
       </div>
     </div>
@@ -1308,16 +1321,25 @@ function renderTabelle(){
     });
     const shops=Object.values(shopMap);
     shops.forEach(s=>s.avg=s.spieler.length?(s.totalP/s.spieler.length):0);
+    // Faire Shop-Rangliste:
+    // Hauptwertung ist der Durchschnitt pro Mitarbeiter, damit kleine Shops nicht benachteiligt sind.
+    // Tie-Breaker: Gesamtpunkte, danach bester Einzelspieler.
     shops.sort((a,b)=>b.avg-a.avg||b.totalP-a.totalP||b.topP-a.topP);
-    let h=`<table><thead><tr><th class="c">#</th><th>Shop</th><th>Bester Tipper</th><th class="c">⌀ Pkt</th><th class="c">Gesamt</th><th class="c">Top</th><th class="c">Mitgl.</th></tr></thead><tbody>`;
+    let h=`<div style="background:var(--blue-light);border:1px solid rgba(21,101,192,.18);border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:12px;line-height:1.6;color:var(--txt2)">
+      <strong style="color:var(--blue)">🏪 Shop-Rangliste Regel:</strong>
+      Die Shops werden fair nach <strong>Ø Punkten pro Mitarbeiter</strong> bewertet.
+      Rechnung: <strong>Gesamtpunkte des Shops ÷ Anzahl Mitarbeiter</strong>.
+      Bei Gleichstand entscheiden zuerst die Gesamtpunkte, danach der beste Einzelspieler.
+    </div>`;
+    h+=`<table><thead><tr><th class="c">#</th><th>Shop</th><th>Bester Tipper</th><th class="c">⌀ Pkt</th><th class="c">Gesamt</th><th class="c">Top</th><th class="c">Mitgl.</th></tr></thead><tbody>`;
     shops.forEach((s,i)=>{
       const isMy=CU&&s.spieler.some(x=>x.nick===CU.nick);
       h+=`<tr class="${isMy?'me-row':''}"><td class="rn ${i<3?'r'+(i+1):''}">${ri[i]||i+1}</td>
-        <td><strong>🏪 ${s.shop}</strong></td>
+        <td><strong>🏪 ${s.shop}</strong><div style="font-size:10px;color:var(--txt3);margin-top:2px">Ø = ${s.totalP} Gesamtpunkte ÷ ${s.spieler.length} Mitarbeiter</div></td>
         <td style="font-size:14px;font-weight:700">${s.topNick}</td>
         <td class="pts-big">${s.avg.toFixed(1)}</td>
-        <td class="nc" style="color:var(--blue)">${s.totalP}</td>
-        <td class="nc" style="color:var(--acc-dark)">${s.topP}</td>
+        <td class="nc" style="color:var(--blue);font-weight:700">${s.totalP}</td>
+        <td class="nc" style="color:var(--acc-dark);font-weight:700">${s.topP}</td>
         <td class="nc">${s.spieler.length}</td></tr>`;
     });
     document.getElementById('tbl-body').innerHTML=h+'</tbody></table>';
