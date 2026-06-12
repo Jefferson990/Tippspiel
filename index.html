@@ -343,15 +343,6 @@ tr:hover td{background:var(--s2)}
 .bn-btn.adm-bn{color:var(--red)}
 .bn-btn.adm-bn.active{background:var(--red-light);color:var(--red)}
 
-
-/* ADMIN PATCH: Haupt-Adminbereich darf kein Grid sein, sonst werden Überschriften, Gruppen und Spiele versetzt dargestellt */
-.adm-main-list{display:block;width:100%;}
-.adm-main-list>.winfo{width:100%;}
-.adm-main-list .g-hdr{clear:both;width:100%;}
-.adm-main-list .adm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:8px;width:100%;margin-bottom:14px;}
-.adm-day-section{display:block;width:100%;clear:both;margin-bottom:22px;}
-.adm-day-title{margin:18px 0 10px;padding:10px 14px;border-radius:10px;background:var(--acc-light);border:1px solid rgba(232,168,0,.25);font-weight:800;color:var(--acc-dark);}
-
 @media(max-width:700px){
   /* Header */
   .hi{padding:0 10px;height:52px;gap:8px}
@@ -755,7 +746,7 @@ tr:hover td{background:var(--s2)}
         </div>
         <div id="import-preview-wrap" style="display:none;margin-bottom:12px"></div>
         <div class="wsel" id="adm-wsel" style="margin-bottom:12px"></div>
-        <div id="adm-grid" class="adm-main-list"></div>
+        <div class="adm-grid" id="adm-grid"></div>
       </div>
       <div id="adm-ko-wrap" style="display:none"><div id="adm-ko-content"></div></div>
       <!-- Tipp-Übersicht Tab -->
@@ -1316,16 +1307,17 @@ function renderTabelle(){
       if(p>shopMap[sn].topP){shopMap[sn].topP=p;shopMap[sn].topNick=nick;}
     });
     const shops=Object.values(shopMap);
-    shops.forEach(s=>s.avg=s.spieler.length?Math.round(s.totalP/s.spieler.length):0);
-    shops.sort((a,b)=>b.topP-a.topP||b.avg-a.avg);
-    let h=`<table><thead><tr><th class="c">#</th><th>Shop</th><th>Bester Tipper</th><th class="c">Top-Pkt</th><th class="c">⌀ Pkt</th><th class="c">Mitgl.</th></tr></thead><tbody>`;
+    shops.forEach(s=>s.avg=s.spieler.length?(s.totalP/s.spieler.length):0);
+    shops.sort((a,b)=>b.avg-a.avg||b.totalP-a.totalP||b.topP-a.topP);
+    let h=`<table><thead><tr><th class="c">#</th><th>Shop</th><th>Bester Tipper</th><th class="c">⌀ Pkt</th><th class="c">Gesamt</th><th class="c">Top</th><th class="c">Mitgl.</th></tr></thead><tbody>`;
     shops.forEach((s,i)=>{
       const isMy=CU&&s.spieler.some(x=>x.nick===CU.nick);
       h+=`<tr class="${isMy?'me-row':''}"><td class="rn ${i<3?'r'+(i+1):''}">${ri[i]||i+1}</td>
         <td><strong>🏪 ${s.shop}</strong></td>
         <td style="font-size:14px;font-weight:700">${s.topNick}</td>
-        <td class="pts-big">${s.topP}</td>
-        <td class="nc" style="color:var(--txt2)">${s.avg}</td>
+        <td class="pts-big">${s.avg.toFixed(1)}</td>
+        <td class="nc" style="color:var(--blue)">${s.totalP}</td>
+        <td class="nc" style="color:var(--acc-dark)">${s.topP}</td>
         <td class="nc">${s.spieler.length}</td></tr>`;
     });
     document.getElementById('tbl-body').innerHTML=h+'</tbody></table>';
@@ -1772,7 +1764,7 @@ function renderAdmGP(){
   days.forEach(day=>{
     const dayLabel=new Date(day+'T12:00:00').toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
     const daySpiele=spiele.filter(s=>s.dt===day);
-    html+=`<section class="adm-day-section"><div class="adm-day-title">📅 ${dayLabel} · ${daySpiele.length} Spiel(e)</div>`;
+    html+=`<div style="margin:18px 0 10px;padding:10px 14px;border-radius:10px;background:var(--acc-light);border:1px solid rgba(232,168,0,.25);font-weight:800;color:var(--acc-dark)">📅 ${dayLabel} · ${daySpiele.length} Spiel(e)</div>`;
 
     const grs=GRUPPEN.filter(g=>g.spiele.some(gs=>daySpiele.find(x=>x.id===gs.id)));
     grs.forEach(gr=>{
@@ -1791,7 +1783,6 @@ function renderAdmGP(){
       });
       html+='</div>';
     });
-    html+='</section>';
   });
   document.getElementById('adm-grid').innerHTML=html;
 }
