@@ -901,6 +901,44 @@ function isWocheFreigeschaltet(w) {
   return now >= fs;
 }
 
+
+
+// ============================================================
+// TIPP-DEADLINE FIX
+// Der Kunde darf bis 1 Minute VOR Spielbeginn tippen.
+// Sobald das Spiel begonnen hat, ist genau dieses Spiel gesperrt.
+// ============================================================
+function parseSpielStart(spiel){
+  if(!spiel || !spiel.dt || !spiel.z) return null;
+  const parts = String(spiel.z).replace(' Uhr','').trim().split(':');
+  const hh = String(parseInt(parts[0]||'0',10)).padStart(2,'0');
+  const mm = String(parseInt(parts[1]||'0',10)).padStart(2,'0');
+  return new Date(`${spiel.dt}T${hh}:${mm}:00`);
+}
+function getTippDeadline(spiel){
+  const start = parseSpielStart(spiel);
+  if(!start || isNaN(start.getTime())) return null;
+  return new Date(start.getTime() - 60*1000); // 1 Minute vor Anpfiff
+}
+function isSpielGestartet(spiel){
+  const start = parseSpielStart(spiel);
+  if(!start || isNaN(start.getTime())) return false;
+  return new Date() >= start;
+}
+function darfSpielNochGetipptWerden(spiel){
+  const deadline = getTippDeadline(spiel);
+  if(!deadline || isNaN(deadline.getTime())) return true;
+  return new Date() <= deadline;
+}
+function tippLockText(spiel, hasE, submitted){
+  if(submitted) return '✅ Tippschein abgegeben';
+  if(hasE) return '🔒 Ergebnis eingetragen';
+  if(!darfSpielNochGetipptWerden(spiel)) return '🔒 Spiel gestartet';
+  const deadline = getTippDeadline(spiel);
+  if(deadline) return 'Tipp möglich bis '+deadline.toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' Uhr';
+  return 'Tipp möglich';
+}
+
 // Countdown bis Freischaltung
 function getCountdown(w) {
   if(!w.freischalt) return null;
@@ -1354,15 +1392,20 @@ function renderWoche(){
 
   const ergLocked=isWLocked(activeW);
   const submitted=!!(submitCache[activeW]&&submitCache[activeW].ts);
-  // Tipp-Eingabe gesperrt wenn: Schein abgegeben ODER Ergebnisse eingetragen
-  const locked=submitted||ergLocked;
+  // FIX: Nicht mehr die ganze Woche sperren, sobald ein Ergebnis eingetragen ist.
+  // Gesperrt wird jetzt pro Spiel: Schein abgegeben ODER Ergebnis vorhanden ODER Spiel gestartet.
   const spiele=ALL_GP.filter(s=>s.dt>=w.von&&s.dt<=w.bis);
+  const offeneSpiele=spiele.filter(s=>{
+    const e=ergCache[s.id];
+    const hasE=e!==undefined&&e.h!==''&&e.h!==undefined;
+    return !hasE && darfSpielNochGetipptWerden(s);
+  });
 
   // Status
   let stCls, stTxt;
-  if(ergLocked){ stCls='st-locked'; stTxt='🔒 Ergebnisse eingetragen'; }
-  else if(submitted){ stCls='st-locked'; stTxt='✅ Tippschein abgegeben'; }
-  else { stCls='st-open'; stTxt='✏️ Offen zum Tippen'; }
+  if(submitted){ stCls='st-locked'; stTxt='✅ Tippschein abgegeben'; }
+  else if(offeneSpiele.length>0){ stCls='st-open'; stTxt='✏️ Offen: '+offeneSpiele.length+' Spiel(e) tippbar'; }
+  else { stCls='st-locked'; stTxt='🔒 Keine Spiele mehr tippbar'; }
 
   document.getElementById('winfo').innerHTML=`<span class="wi-lbl">Zeitraum</span><span class="wi-val">${w.dates}</span><span class="wi-lbl" style="margin-left:8px">Spiele</span><span class="wi-val">${spiele.length}</span><span class="wi-st ${stCls}">${stTxt}</span>`;
 
@@ -1377,10 +1420,11 @@ function renderWoche(){
     const wsp=gr.spiele.filter(s=>spiele.find(x=>x.id===s.id));
     html+=`<div class="g-hdr"><div class="g-badge">${gr.id}</div><div class="g-info"><h3>Gruppe ${gr.id}</h3><p>${gr.teams.map(t=>`<span class="g-team-pill">${flagImg(t,'flag-sm')}<span>${t}</span></span>`).join('')}</p></div></div><div class="spl-grid">`;
     wsp.forEach(s=>{
-      const t=tCache[s.id]||{h:'',g:''};const e=ergCache[s.id];const hasE=e!==undefined&&e.h!==''&&e.h!==undefined;const lk=locked||hasE;
+      const t=tCache[s.id]||{h:'',g:''};const e=ergCache[s.id];const hasE=e!==undefined&&e.h!==''&&e.h!==undefined;const lk=submitted||hasE||!darfSpielNochGetipptWerden(s);
+      const lockInfo=tippLockText(s,hasE,submitted);
       let sbH='',edH='';
       if(hasE){const p=ptsGP({h:t.h,g:t.g},{h:e.h,g:e.g});if(p===3)sbH='<span class="sbadge sb-ex">✓ Exakt +3</span>';else if(p===1)sbH='<span class="sbadge sb-te">~ Tendenz +1</span>';else if(p===0)sbH='<span class="sbadge sb-wr">✗ Falsch +0</span>';edH=`<span class="edisp">Ergebnis: <strong>${e.h}:${e.g}</strong></span>`;}
-      html+=`<div class="sc${lk?' locked':''}"><div class="sc-top"><span class="sc-meta">📅 ${s.d} ${s.z} · 📍 ${s.o}</span><span class="lbadge">🔒 Gesperrt</span></div>
+      html+=`<div class="sc${lk?' locked':''}"><div class="sc-top"><span class="sc-meta">📅 ${s.d} ${s.z} · 📍 ${s.o}</span><span class="lbadge">${lockInfo}</span></div>
         <div class="sc-teams">
           <div class="tb home">${flagImg(s.h)}<div class="tn">${s.h}</div></div>
           <div class="sbox${hasE?' has-r':''}">
@@ -1395,13 +1439,7 @@ function renderWoche(){
   });
   // Submit Bar bauen
   let submitHtml='';
-  if(ergLocked){
-    submitHtml=`<div class="week-locked-overlay">
-      <span style="font-size:22px">🔒</span>
-      <div><div>Ergebnisse bereits eingetragen</div>
-      <div style="font-size:11px;font-weight:400;color:var(--txt2);margin-top:2px">Diese Woche kann nicht mehr getippt werden</div></div>
-    </div>`;
-  } else if(submitted){
+  if(submitted){
     const ts=new Date(submitCache[activeW].ts).toLocaleString('de-DE');
     submitHtml=`<div class="submit-bar submitted">
       <div>
@@ -1431,9 +1469,16 @@ function renderWoche(){
 }
 let tSt={};
 function onTipp(inp){
-  // Gesperrt wenn Schein bereits abgegeben
-  if(submitCache[activeW]&&submitCache[activeW].ts){ inp.value=inp.defaultValue; return; }
+  // Gesperrt wenn Schein bereits abgegeben, Ergebnis vorhanden oder Spiel gestartet
   const sid=inp.dataset.sid,side=inp.dataset.side;
+  const spiel=ALL_GP.find(x=>x.id===sid);
+  const ergebnis=ergCache[sid];
+  const hasE=ergebnis!==undefined&&ergebnis.h!==''&&ergebnis.h!==undefined;
+  if((submitCache[activeW]&&submitCache[activeW].ts)||hasE||!darfSpielNochGetipptWerden(spiel)){
+    inp.value=inp.defaultValue;
+    toast('🔒 Tipp nicht mehr möglich: Spiel hat begonnen oder ist abgeschlossen','er');
+    return;
+  }
   // val is '' if empty, otherwise a number (including 0)
   const val = inp.value==='' ? '' : Math.max(0, parseInt(inp.value)||0);
   if(inp.value!=='' && val!==parseInt(inp.value)) inp.value=val;
@@ -1444,6 +1489,13 @@ function onTipp(inp){
 }
 async function saveTipp(sid){
   if(!CU)return;const t=tCache[sid];
+  const spiel=ALL_GP.find(x=>x.id===sid);
+  const ergebnis=ergCache[sid];
+  const hasE=ergebnis!==undefined&&ergebnis.h!==''&&ergebnis.h!==undefined;
+  if((submitCache[activeW]&&submitCache[activeW].ts)||hasE||!darfSpielNochGetipptWerden(spiel)){
+    toast('🔒 Tipp nicht gespeichert: Spiel hat begonnen oder ist abgeschlossen','er');
+    return;
+  }
   if(t.h===''||t.g===''||t.h===undefined||t.g===undefined)return;
   try{
     await dbUpd('tipps/'+CU.nick,{[sid]:{h:+t.h,g:+t.g}});
@@ -2187,7 +2239,7 @@ async function autoImportErgebnisse(silent=false){
   try{
     // Alle abgeschlossenen WM 2026 Spiele
     const r=await fetch(
-      'https://v3.football.api-sports.io/fixtures?league=1&season=2026&status=FT',
+      'https://v3.football.api-sports.io/fixtures?league=1&season=2026&from=2026-06-11&to=2026-07-19',
       { headers:{'x-apisports-key':key} }
     );
 
@@ -2207,7 +2259,7 @@ async function autoImportErgebnisse(silent=false){
 
     const fixtures=data.response||[];
     if(fixtures.length===0){
-      toast('Noch keine abgeschlossenen Spiele','er');
+      toast('API liefert noch keine WM-2026-Endergebnisse. Bitte Ergebnisse manuell eintragen oder API-Anbieter prüfen.','er');
       btn.disabled=false; btn.innerHTML='🔄 Ergebnisse abrufen';
       return;
     }
@@ -2235,8 +2287,9 @@ async function autoImportErgebnisse(silent=false){
       if(!silent){
         document.getElementById('import-preview-wrap').innerHTML=`
           <div style="background:var(--acc-light);border:1px solid rgba(232,168,0,.2);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--acc-dark)">
-            ℹ️ ${fixtures.length} Spiele in API gefunden, aber keine stimmen mit unserem Spielplan überein.<br>
-            Bitte ggf. manuell eintragen.
+            ℹ️ ${fixtures.length} API-Spiele gefunden, aber kein abgeschlossenes Spiel passt zu unserem Spielplan.<br>
+            Mögliche Gründe: API hat noch keine WM-2026-Daten, andere Teamnamen, falscher Wettbewerb/League-ID oder Spiele sind noch nicht als FT markiert.<br>
+            Bis dahin bitte im Adminbereich manuell eintragen.
           </div>`;
         document.getElementById('import-preview-wrap').style.display='block';
       }
