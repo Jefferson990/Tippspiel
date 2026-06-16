@@ -420,6 +420,38 @@ tr:hover td{background:var(--s2)}
   .ltxt{display:none}
   .tn{font-size:12px}
 }
+
+
+/* === ADMIN DATUM-SORTIERUNG FIX ===
+   Der äußere Admin-Container darf KEIN Grid sein, sonst werden Tagesüberschriften
+   und Spielkarten nebeneinander verteilt. Die Tagesabschnitte laufen nun sauber
+   von oben nach unten; die Karten innerhalb eines Tages bleiben als Grid. */
+#adm-grid{
+  display:block!important;
+}
+#adm-grid > .admin-day-section{
+  display:block;
+  width:100%;
+  margin:0 0 18px;
+}
+#adm-grid .admin-day-title{
+  margin:18px 0 10px;
+  padding:10px 14px;
+  border-radius:10px;
+  background:var(--acc-light);
+  border:1px solid rgba(232,168,0,.25);
+  font-weight:800;
+  color:var(--acc-dark);
+}
+#adm-grid .admin-day-games{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+  gap:8px;
+}
+@media(max-width:700px){
+  #adm-grid .admin-day-games{grid-template-columns:1fr;}
+}
+
 </style>
 </head>
 <body>
@@ -626,8 +658,8 @@ tr:hover td{background:var(--s2)}
           </div>
           <div style="background:var(--s2);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--txt2);line-height:1.7">
             📅 <strong style="color:var(--txt)">Woche 1</strong> — sofort verfügbar ab Start des Turniers<br>
-            📅 <strong style="color:var(--txt)">Woche 2</strong> — Freischaltung am <strong style="color:var(--acc-dark)">14. Juni um 17:00 Uhr</strong><br>
-            📅 <strong style="color:var(--txt)">Woche 3</strong> — Freischaltung am <strong style="color:var(--acc-dark)">20. Juni um 17:00 Uhr</strong><br>
+            📅 <strong style="color:var(--txt)">Woche 2</strong> — ab sofort verfügbar<br>
+            📅 <strong style="color:var(--txt)">Woche 3</strong> — ab sofort verfügbar<br>
             🥊 <strong style="color:var(--txt)">KO-Runde</strong> — wird nach Gruppenphase freigeschaltet<br>
             <br>
             ⚠️ <strong style="color:var(--red)">Wichtig:</strong> Nach Abgabe des Tippscheins sind <strong>keine Änderungen</strong> mehr möglich!
@@ -661,19 +693,6 @@ tr:hover td{background:var(--s2)}
           <div style="margin-top:10px;background:var(--s2);border-radius:8px;padding:10px 14px;font-size:11px;color:var(--txt3);line-height:1.6">
             * Die Gewinner werden nach Abschluss des Turniers (19. Juli 2026) bekannt gegeben.
             Jeder Mitarbeiter kann nur einmal gewinnen. Bei Punktegleichstand entscheidet die Anzahl der exakten Ergebnisse.
-          </div>
-
-          <div style="margin-top:12px;background:var(--blue-light);border:1.5px solid rgba(21,101,192,.22);border-radius:10px;padding:14px 16px;font-size:12px;color:var(--txt2);line-height:1.75">
-            <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:6px">🏪 Erklärung Shop-Rangliste</div>
-            Die Shop-Rangliste ist bewusst fair aufgebaut, damit kleinere Shops nicht gegen größere Shops benachteiligt werden.<br>
-            <strong style="color:var(--txt)">Hauptwertung:</strong> Durchschnittspunkte pro Mitarbeiter.<br>
-            <strong style="color:var(--txt)">Formel:</strong> Shop-Ø = Gesamtpunkte aller Mitarbeiter ÷ Anzahl Mitarbeiter.<br><br>
-            <strong style="color:var(--txt)">Beispiel:</strong><br>
-            O2 Crailsheim: 3 Mitarbeiter, 30 Gesamtpunkte → Ø 10,0 Punkte.<br>
-            O2 Aalen: 5 Mitarbeiter, 40 Gesamtpunkte → Ø 8,0 Punkte.<br>
-            Dadurch wäre Crailsheim trotz weniger Gesamtpunkte vorne, weil die Leistung pro Mitarbeiter stärker ist.<br><br>
-            <strong style="color:var(--txt)">Bei Gleichstand entscheidet:</strong><br>
-            1. höhere Gesamtpunkte · 2. bester Einzelspieler · 3. Anzahl Mitarbeiter.
           </div>
         </div>
       </div>
@@ -897,12 +916,12 @@ const WOCHEN=[
   {
     id:'W2', label:'Woche 2', dates:'16.–21. Jun',
     von:'2026-06-16', bis:'2026-06-21',
-    freischalt: '2026-06-14T17:00:00' // 14. Juni 17:00 MESZ
+    freischalt: null // sofort verfügbar
   },
   {
     id:'W3', label:'Woche 3', dates:'22.–28. Jun',
     von:'2026-06-22', bis:'2026-06-28',
-    freischalt: '2026-06-20T17:00:00' // 20. Juni 17:00 MESZ
+    freischalt: null // sofort verfügbar
   },
 ];
 
@@ -927,6 +946,13 @@ function parseSpielStart(spiel){
   const hh = String(parseInt(parts[0]||'0',10)).padStart(2,'0');
   const mm = String(parseInt(parts[1]||'0',10)).padStart(2,'0');
   return new Date(`${spiel.dt}T${hh}:${mm}:00`);
+}
+function compareSpielStart(a,b){
+  const da = parseSpielStart(a);
+  const db = parseSpielStart(b);
+  const ta = da && !isNaN(da.getTime()) ? da.getTime() : 0;
+  const tb = db && !isNaN(db.getTime()) ? db.getTime() : 0;
+  return ta - tb;
 }
 function getTippDeadline(spiel){
   const start = parseSpielStart(spiel);
@@ -1320,26 +1346,16 @@ function renderTabelle(){
       if(p>shopMap[sn].topP){shopMap[sn].topP=p;shopMap[sn].topNick=nick;}
     });
     const shops=Object.values(shopMap);
-    shops.forEach(s=>s.avg=s.spieler.length?(s.totalP/s.spieler.length):0);
-    // Faire Shop-Rangliste:
-    // Hauptwertung ist der Durchschnitt pro Mitarbeiter, damit kleine Shops nicht benachteiligt sind.
-    // Tie-Breaker: Gesamtpunkte, danach bester Einzelspieler.
-    shops.sort((a,b)=>b.avg-a.avg||b.totalP-a.totalP||b.topP-a.topP);
-    let h=`<div style="background:var(--blue-light);border:1px solid rgba(21,101,192,.18);border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:12px;line-height:1.6;color:var(--txt2)">
-      <strong style="color:var(--blue)">🏪 Shop-Rangliste Regel:</strong>
-      Die Shops werden fair nach <strong>Ø Punkten pro Mitarbeiter</strong> bewertet.
-      Rechnung: <strong>Gesamtpunkte des Shops ÷ Anzahl Mitarbeiter</strong>.
-      Bei Gleichstand entscheiden zuerst die Gesamtpunkte, danach der beste Einzelspieler.
-    </div>`;
-    h+=`<table><thead><tr><th class="c">#</th><th>Shop</th><th>Bester Tipper</th><th class="c">⌀ Pkt</th><th class="c">Gesamt</th><th class="c">Top</th><th class="c">Mitgl.</th></tr></thead><tbody>`;
+    shops.forEach(s=>s.avg=s.spieler.length?Math.round(s.totalP/s.spieler.length):0);
+    shops.sort((a,b)=>b.topP-a.topP||b.avg-a.avg);
+    let h=`<table><thead><tr><th class="c">#</th><th>Shop</th><th>Bester Tipper</th><th class="c">Top-Pkt</th><th class="c">⌀ Pkt</th><th class="c">Mitgl.</th></tr></thead><tbody>`;
     shops.forEach((s,i)=>{
       const isMy=CU&&s.spieler.some(x=>x.nick===CU.nick);
       h+=`<tr class="${isMy?'me-row':''}"><td class="rn ${i<3?'r'+(i+1):''}">${ri[i]||i+1}</td>
-        <td><strong>🏪 ${s.shop}</strong><div style="font-size:10px;color:var(--txt3);margin-top:2px">Ø = ${s.totalP} Gesamtpunkte ÷ ${s.spieler.length} Mitarbeiter</div></td>
+        <td><strong>🏪 ${s.shop}</strong></td>
         <td style="font-size:14px;font-weight:700">${s.topNick}</td>
-        <td class="pts-big">${s.avg.toFixed(1)}</td>
-        <td class="nc" style="color:var(--blue);font-weight:700">${s.totalP}</td>
-        <td class="nc" style="color:var(--acc-dark);font-weight:700">${s.topP}</td>
+        <td class="pts-big">${s.topP}</td>
+        <td class="nc" style="color:var(--txt2)">${s.avg}</td>
         <td class="nc">${s.spieler.length}</td></tr>`;
     });
     document.getElementById('tbl-body').innerHTML=h+'</tbody></table>';
@@ -1763,7 +1779,7 @@ function buildAdmDayFilter(spiele){
 
 function renderAdmGP(){
   const w=WOCHEN.find(x=>x.id===admW)||WOCHEN[0];
-  const weekSpiele=ALL_GP.filter(s=>s.dt>=w.von&&s.dt<=w.bis).sort((a,b)=>(a.dt+a.z).localeCompare(b.dt+b.z));
+  const weekSpiele=ALL_GP.filter(s=>s.dt>=w.von&&s.dt<=w.bis).sort(compareSpielStart);
   const spiele=admDay==='all'?weekSpiele:weekSpiele.filter(s=>s.dt===admDay);
   let html='';
 
@@ -1785,27 +1801,24 @@ function renderAdmGP(){
   const days=[...new Set(spiele.map(s=>s.dt))].sort();
   days.forEach(day=>{
     const dayLabel=new Date(day+'T12:00:00').toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
-    const daySpiele=spiele.filter(s=>s.dt===day);
-    html+=`<div style="margin:18px 0 10px;padding:10px 14px;border-radius:10px;background:var(--acc-light);border:1px solid rgba(232,168,0,.25);font-weight:800;color:var(--acc-dark)">📅 ${dayLabel} · ${daySpiele.length} Spiel(e)</div>`;
-
-    const grs=GRUPPEN.filter(g=>g.spiele.some(gs=>daySpiele.find(x=>x.id===gs.id)));
-    grs.forEach(gr=>{
-      const wsp=gr.spiele.filter(gs=>daySpiele.find(x=>x.id===gs.id));
-      html+=`<div class="g-hdr"><div class="g-badge">${gr.id}</div><div class="g-info"><h3>Gruppe ${gr.id}</h3><p>${gr.teams.map(t=>`<span class="g-team-pill">${flagImg(t,'flag-sm')}${t}</span>`).join(' ')}</p></div></div><div class="adm-grid">`;
-      wsp.forEach(s=>{
-        const e=ergCache[s.id]||{h:'',g:''};
-        const saved=e.h!==''&&e.h!==undefined&&e.g!==''&&e.g!==undefined;
-        html+=`<div class="eac"><div class="eac-teams">${flagImg(s.h,'flag-sm')} ${s.h} <span style="color:var(--txt3);font-size:12px">vs</span> ${flagImg(s.g,'flag-sm')} ${s.g}</div>
-          <div class="eac-meta">📅 ${s.d} ${s.z} · 📍 ${s.o} · Gruppe ${s.gruppe}</div>
-          <div class="eac-row">
-            <div class="easbox"><input class="eainp" type="number" min="0" max="99" id="ea-h-${s.id}" value="${saved?e.h:''}"><span class="ssep">:</span><input class="eainp" type="number" min="0" max="99" id="ea-g-${s.id}" value="${saved?e.g:''}"></div>
-            <button class="ea-btn" onclick="saveAdmErg('${s.id}')">💾 Speichern</button>
-            <span class="ea-ok" id="ea-ok-${s.id}" style="${saved?'':'display:none'}">${saved?'✓':''}</span>
-          </div></div>`;
-      });
-      html+='</div>';
+    const daySpiele=spiele.filter(s=>s.dt===day).sort(compareSpielStart);
+    html+=`<section class="admin-day-section">`;
+    html+=`<div class="admin-day-title">📅 ${dayLabel} · ${daySpiele.length} Spiel(e) · chronologisch sortiert</div>`;
+    html+=`<div class="admin-day-games">`;
+    daySpiele.forEach(s=>{
+      const e=ergCache[s.id]||{h:'',g:''};
+      const saved=e.h!==''&&e.h!==undefined&&e.g!==''&&e.g!==undefined;
+      html+=`<div class="eac"><div class="eac-teams"><span style="display:inline-block;min-width:54px;color:var(--acc-dark);font-weight:800">${s.z}</span>${flagImg(s.h,'flag-sm')} ${s.h} <span style="color:var(--txt3);font-size:12px">vs</span> ${flagImg(s.g,'flag-sm')} ${s.g}</div>
+        <div class="eac-meta">📅 ${s.d} ${s.z} · 📍 ${s.o} · Gruppe ${s.gruppe}</div>
+        <div class="eac-row">
+          <div class="easbox"><input class="eainp" type="number" min="0" max="99" id="ea-h-${s.id}" value="${saved?e.h:''}"><span class="ssep">:</span><input class="eainp" type="number" min="0" max="99" id="ea-g-${s.id}" value="${saved?e.g:''}"></div>
+          <button class="ea-btn" onclick="saveAdmErg('${s.id}')">💾 Speichern</button>
+          <span class="ea-ok" id="ea-ok-${s.id}" style="${saved?'':'display:none'}">${saved?'✓':''}</span>
+        </div></div>`;
     });
+    html+='</div></section>';
   });
+
   document.getElementById('adm-grid').innerHTML=html;
 }
 async function saveAdmErg(sid){
