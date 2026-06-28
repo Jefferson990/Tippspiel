@@ -1527,7 +1527,7 @@ function renderWoche(){
         <div style="font-size:12px;color:var(--txt2);margin-top:3px">${filled} von ${spiele.length} Spielen getippt${missing>0?' &nbsp;·&nbsp; <span style="color:var(--red)">'+missing+' noch offen</span>':' &nbsp;·&nbsp; <span style="color:var(--green)">Alle getippt ✓</span>'}</div>
         <div style="font-size:11px;color:var(--txt3);margin-top:3px">⚠️ Nach Abgabe sind keine Änderungen mehr möglich!</div>
       </div>
-      <button class="btn-submit" onclick="submitTippschein('${activeW}')">
+      <button type="button" class="btn-submit" onclick="submitTippschein('${activeW}')">
         📋 Tippschein abgeben ${filled===spiele.length?'✓':'('+filled+'/'+spiele.length+')'}
       </button>
     </div>`;
@@ -1663,7 +1663,7 @@ function renderKOTipps(){
             <div style="font-size:12px;color:var(--txt2);margin-top:3px">${getippt.length} von ${tippbar.length} Ergebnissen getippt${missing>0?' · <span style="color:var(--red)">'+missing+' noch offen</span>':' · <span style="color:var(--green)">Alle getippt ✓</span>'}</div>
             <div style="font-size:11px;color:var(--txt3);margin-top:2px">⚠️ Nach Abgabe sind keine Änderungen mehr möglich!</div>
           </div>
-          <button class="btn-submit" onclick="submitKOSchein('${rundId}','${runde.label}')"${getippt.length===0?' disabled':''}>
+          <button type="button" class="btn-submit" onclick="submitKOSchein('${rundId}','${runde.label}')">
             📋 Schein abgeben ${getippt.length===tippbar.length?'✓':'('+getippt.length+'/'+tippbar.length+')'}
           </button>
         </div>`;
@@ -1751,7 +1751,7 @@ function renderKOTipps(){
           <div style="font-size:12px;color:var(--txt2);margin-top:3px">${getippt.length} von ${tippbar.length} Spielen getippt${missing>0?' · <span style="color:var(--red)">'+missing+' noch offen</span>':' · <span style="color:var(--green)">Alle getippt ✓</span>'}</div>
           <div style="font-size:11px;color:var(--txt3);margin-top:2px">⚠️ Nach Abgabe sind keine Änderungen mehr möglich!</div>
         </div>
-        <button class="btn-submit" onclick="submitKOSchein('${rundId}','${runde.label}')"${getippt.length===0?' disabled':''}>
+        <button type="button" class="btn-submit" onclick="submitKOSchein('${rundId}','${runde.label}')"${getippt.length===0?' disabled':''}>
           📋 Schein abgeben ${getippt.length===tippbar.length?'✓':'('+getippt.length+'/'+tippbar.length+')'}
         </button>
       </div>`;
@@ -1825,6 +1825,19 @@ async function submitKOSchein(rundId, rundLabel){
   if(runde.id==='SF'){
     const hasErg=s=>{const ko=koCache[s.id]||{};return ko.h!==undefined&&ko.h!==''&&ko.g!==undefined&&ko.g!=='';};
     tippbar=runde.spiele.filter(s=>(s.t1||koCache[s.id]?.team1)&&(s.t2||koCache[s.id]?.team2)&&!hasErg(s));
+    // Werte frisch aus den Eingabefeldern lesen und in Cache+DB sichern (verhindert Zähl-Diskrepanz)
+    const pending={};
+    tippbar.forEach(s=>{
+      const hEl=document.querySelector(`input[data-koid="${s.id}"][data-side="h"]`);
+      const gEl=document.querySelector(`input[data-koid="${s.id}"][data-side="g"]`);
+      if(!hEl||!gEl)return;
+      const hv=hEl.value!==''?Math.max(0,Math.min(99,parseInt(hEl.value)||0)):'';
+      const gv=gEl.value!==''?Math.max(0,Math.min(99,parseInt(gEl.value)||0)):'';
+      if(!koTScoreCache[s.id])koTScoreCache[s.id]={h:'',g:''};
+      koTScoreCache[s.id].h=hv; koTScoreCache[s.id].g=gv;
+      pending[s.id]=koTScoreCache[s.id];
+    });
+    if(Object.keys(pending).length){await dbUpd('ko_tipps_score/'+CU.nick,pending);}
     getippt=tippbar.filter(s=>{const t=koTScoreCache[s.id]||{};return t.h!==undefined&&t.h!==''&&t.g!==undefined&&t.g!=='';});
     einheit='Ergebnis';
   } else {
