@@ -1688,7 +1688,9 @@ function renderKOTipps(){
           if(p===3)sbH='<span class="sbadge sb-ex">✓ Exakt +3</span>';
           else if(p===1)sbH='<span class="sbadge sb-te">~ Tendenz +1</span>';
           else if(p===0)sbH='<span class="sbadge sb-wr">✗ Falsch +0</span>';
-          edH=`<span class="edisp">Ergebnis: <strong>${erg.h}:${erg.g}</strong></span>`;
+          const realShown=(ko.rh!==undefined&&ko.rh!=='')?(ko.rh+':'+ko.rg):(erg.h+':'+erg.g);
+          const penNote=ko.pen?` <span style="color:var(--txt3);font-weight:500">(${realShown} n.E./n.V., weiter: ${ko.pen} · Wertung 1:0)</span>`:'';
+          edH=`<span class="edisp">Ergebnis: <strong>${ko.pen?realShown:erg.h+':'+erg.g}</strong>${penNote}</span>`;
         }
         html+=`<div class="sc${lk?' locked':''}">
           <div class="sc-top"><span class="sc-meta">📅 ${s.d} ${s.o}</span><span class="lbadge">${erg?'Ergebnis da':submitted?'Abgegeben':''}</span></div>
@@ -1971,6 +1973,7 @@ async function saveAdmErg(sid){
 
 async function loadAdmKO(){const koE=await dbGet('ko_ergebnisse')||{};koCache=koE;renderAdmKO();}
 let admWinSel={};
+let admPenSel={};
 
 // Vollständiger Turnierbaum laut FIFA-Spielplan
 const BRACKET=[
@@ -2104,17 +2107,31 @@ function renderAdmKO(){
 
       const isSF=s.id&&s.id.startsWith('SF');
       if(isSF){
-        const eh=(ko.h!==undefined&&ko.h!=='')?ko.h:'';
-        const eg=(ko.g!==undefined&&ko.g!=='')?ko.g:'';
+        // ko.h/ko.g = gewertetes Ergebnis (für 3/1). ko.rh/ko.rg = echter Eingabestand. ko.pen = Elfmeter/Verl.-Sieger
+        const rh=(ko.rh!==undefined&&ko.rh!=='')?ko.rh:(ko.h!==undefined&&ko.h!==''?ko.h:'');
+        const rg=(ko.rg!==undefined&&ko.rg!=='')?ko.rg:(ko.g!==undefined&&ko.g!==''?ko.g:'');
+        const penWinner=ko.pen||'';
         html+=`<div style="font-size:10px;color:var(--txt3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">Endergebnis eintragen</div>
         <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:6px">
           <span style="font-size:12px;font-weight:700;flex:1;text-align:right">${t1||'Team 1'}</span>
-          <input class="fi" type="number" min="0" max="99" style="width:50px;text-align:center;font-size:16px;font-weight:700;padding:6px" id="ko-eh-${s.id}" value="${eh}" placeholder="–">
+          <input class="fi" type="number" min="0" max="99" style="width:50px;text-align:center;font-size:16px;font-weight:700;padding:6px" id="ko-eh-${s.id}" value="${rh}" placeholder="–" oninput="updPenRow('${s.id}')">
           <span style="font-weight:700;color:var(--txt3)">:</span>
-          <input class="fi" type="number" min="0" max="99" style="width:50px;text-align:center;font-size:16px;font-weight:700;padding:6px" id="ko-eg-${s.id}" value="${eg}" placeholder="–">
+          <input class="fi" type="number" min="0" max="99" style="width:50px;text-align:center;font-size:16px;font-weight:700;padding:6px" id="ko-eg-${s.id}" value="${rg}" placeholder="–" oninput="updPenRow('${s.id}')">
           <span style="font-size:12px;font-weight:700;flex:1;text-align:left">${t2||'Team 2'}</span>
         </div>
-        <div style="font-size:10px;color:var(--txt3);text-align:center;margin-bottom:6px">Bei Verlängerung/Elfmeter: Stand nach 90 Min eintragen (oder Endstand inkl. Verl.)</div>`;
+        <div style="font-size:10px;color:var(--txt3);text-align:center;margin-bottom:8px">Trag den echten Endstand ein (auch z.B. 5:4 nach Elfmeter).</div>
+        <div id="ko-penrow-${s.id}" style="${(+rh===+rg&&rh!==''&&rg!=='')?'':'display:none;'}background:var(--acc-light);border:1px solid rgba(232,168,0,.3);border-radius:8px;padding:9px 11px;margin-bottom:8px">
+          <div style="font-size:11px;font-weight:700;color:var(--acc-dark);margin-bottom:6px">⚽ Unentschieden — wer kommt weiter (Verl./Elfmeter)?</div>
+          <div style="display:flex;gap:6px">
+            <label style="flex:1;display:flex;align-items:center;gap:6px;padding:6px 8px;border:1.5px solid ${penWinner===t1?'var(--green)':'var(--b1)'};background:${penWinner===t1?'var(--green-light)':'var(--s2)'};border-radius:7px;cursor:pointer;font-size:12px;font-weight:600">
+              <input type="radio" name="pen-${s.id}" value="${t1}" ${penWinner===t1?'checked':''} style="accent-color:var(--green)" onchange="setPenWinner('${s.id}','${t1}')">${flagImg(t1,'flag-sm')} ${t1}
+            </label>
+            <label style="flex:1;display:flex;align-items:center;gap:6px;padding:6px 8px;border:1.5px solid ${penWinner===t2?'var(--green)':'var(--b1)'};background:${penWinner===t2?'var(--green-light)':'var(--s2)'};border-radius:7px;cursor:pointer;font-size:12px;font-weight:600">
+              <input type="radio" name="pen-${s.id}" value="${t2}" ${penWinner===t2?'checked':''} style="accent-color:var(--green)" onchange="setPenWinner('${s.id}','${t2}')">${flagImg(t2,'flag-sm')} ${t2}
+            </label>
+          </div>
+          <div style="font-size:10px;color:var(--txt3);margin-top:5px">Wird für die Tipp-Wertung als <strong>1:0</strong> für den Gewinner gezählt.</div>
+        </div>`;
       } else {
         html+=`<div style="font-size:10px;color:var(--txt3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">Sieger / Weiterkommer</div>`;
         if(hasBoth){
@@ -2153,6 +2170,17 @@ function renderAdmKO(){
 }
 
 function selAdmW(sid,team){admWinSel[sid]=team;renderAdmKO();}
+// Penalty/Verlängerung: Auswahl-Reihe ein-/ausblenden je nach Gleichstand (ohne Re-Render, damit Eingabe nicht springt)
+function updPenRow(sid){
+  const eh=document.getElementById('ko-eh-'+sid),eg=document.getElementById('ko-eg-'+sid);
+  const row=document.getElementById('ko-penrow-'+sid);
+  if(!eh||!eg||!row)return;
+  const a=eh.value,b=eg.value;
+  const tie=a!==''&&b!==''&&parseInt(a)===parseInt(b);
+  row.style.display=tie?'':'none';
+  if(!tie){delete admPenSel[sid];}
+}
+function setPenWinner(sid,team){admPenSel[sid]=team;}
 
 async function saveAdmKO(sid){
   const t1=document.getElementById('ko-t1-'+sid).value.trim();
@@ -2164,15 +2192,33 @@ async function saveAdmKO(sid){
     const ehEl=document.getElementById('ko-eh-'+sid),egEl=document.getElementById('ko-eg-'+sid);
     const ehv=ehEl?ehEl.value:'',egv=egEl?egEl.value:'';
     if(ehv===''||egv===''){toast('Ergebnis eingeben (z.B. 2:1)','er');return;}
-    const h=Math.max(0,Math.min(99,parseInt(ehv)||0));
-    const g=Math.max(0,Math.min(99,parseInt(egv)||0));
-    // Sieger aus Ergebnis ableiten (für Achtelfinal-Bracket). Bei Unentschieden: kein Sieger gesetzt.
-    const data={team1:t1,team2:t2,h:h,g:g};
-    if(h>g)data.winner=t1; else if(g>h)data.winner=t2;
+    const rh=Math.max(0,Math.min(99,parseInt(ehv)||0));
+    const rg=Math.max(0,Math.min(99,parseInt(egv)||0));
+    const tie=rh===rg;
+
+    if(tie){
+      // Unentschieden → Verlängerung/Elfmeter: Gewinner muss gewählt werden
+      const penW=admPenSel[sid]||koCache[sid]?.pen||'';
+      if(!penW){toast('Bitte wählen wer nach Verl./Elfmeter weiterkommt','er');return;}
+      // Gewertetes Ergebnis = 1:0 für den Gewinner; echter Stand separat
+      const h=penW===t1?1:0, g=penW===t2?1:0;
+      const data={team1:t1,team2:t2,h:h,g:g,rh:rh,rg:rg,pen:penW,winner:penW};
+      await dbUpd('ko_ergebnisse',{[sid]:data});
+      koCache[sid]=data;
+      const ok=document.getElementById('ko-ok-'+sid);
+      if(ok){ok.style.display='block';ok.textContent='✓ '+rh+':'+rg+' n.E./n.V. · Weiter: '+penW+' (Wertung 1:0)';}
+      toast('✅ Ergebnis gespeichert','ok');
+      renderAdmKO();
+      return;
+    }
+
+    // Regulärer Sieg: gewertetes Ergebnis = echter Stand
+    const data={team1:t1,team2:t2,h:rh,g:rg,rh:rh,rg:rg};
+    data.winner=rh>rg?t1:t2;
     await dbUpd('ko_ergebnisse',{[sid]:data});
     koCache[sid]=data;
     const ok=document.getElementById('ko-ok-'+sid);
-    if(ok){ok.style.display='block';ok.textContent='✓ Ergebnis: '+h+':'+g+(data.winner?' · Sieger: '+data.winner:' (Unentschieden)');}
+    if(ok){ok.style.display='block';ok.textContent='✓ Ergebnis: '+rh+':'+rg+' · Sieger: '+data.winner;}
     toast('✅ Ergebnis gespeichert','ok');
     renderAdmKO();
     return;
@@ -2960,7 +3006,7 @@ async function openTippscheinVerlauf(){
           <div style="font-size:12px;font-weight:700;color:var(--acc-dark);white-space:nowrap;flex-shrink:0">
             ${hasMyT?'Tipp: '+myT.h+':'+myT.g:'—'}
           </div>
-          ${hasErg?`<div style="font-size:10px;color:var(--txt3);white-space:nowrap;flex-shrink:0">(Erg: ${ko.h}:${ko.g})</div>`:''}
+          ${hasErg?`<div style="font-size:10px;color:var(--txt3);white-space:nowrap;flex-shrink:0">(Erg: ${ko.pen&&ko.rh!==undefined?ko.rh+':'+ko.rg+' n.E.':ko.h+':'+ko.g})</div>`:''}
           ${pBadge}
         </div>`;
         return;
