@@ -420,38 +420,6 @@ tr:hover td{background:var(--s2)}
   .ltxt{display:none}
   .tn{font-size:12px}
 }
-
-
-/* === ADMIN DATUM-SORTIERUNG FIX ===
-   Der äußere Admin-Container darf KEIN Grid sein, sonst werden Tagesüberschriften
-   und Spielkarten nebeneinander verteilt. Die Tagesabschnitte laufen nun sauber
-   von oben nach unten; die Karten innerhalb eines Tages bleiben als Grid. */
-#adm-grid{
-  display:block!important;
-}
-#adm-grid > .admin-day-section{
-  display:block;
-  width:100%;
-  margin:0 0 18px;
-}
-#adm-grid .admin-day-title{
-  margin:18px 0 10px;
-  padding:10px 14px;
-  border-radius:10px;
-  background:var(--acc-light);
-  border:1px solid rgba(232,168,0,.25);
-  font-weight:800;
-  color:var(--acc-dark);
-}
-#adm-grid .admin-day-games{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
-  gap:8px;
-}
-@media(max-width:700px){
-  #adm-grid .admin-day-games{grid-template-columns:1fr;}
-}
-
 </style>
 </head>
 <body>
@@ -743,6 +711,10 @@ tr:hover td{background:var(--s2)}
           <div class="auth-hd"><div class="atitle" style="font-size:32px">🔧 Admin<br><span class="hl">Bereich</span></div></div>
           <div class="err" id="ae"></div>
           <div class="fg"><label class="fl">Admin Passwort</label><input class="fi" id="apw" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doAdmLogin()"></div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--txt2);cursor:pointer;margin-bottom:14px;user-select:none">
+            <input type="checkbox" id="apw-remember" style="width:16px;height:16px;accent-color:var(--acc);cursor:pointer">
+            Angemeldet bleiben (Passwort merken)
+          </label>
           <button class="btn-p" onclick="doAdmLogin()">Einloggen</button>
         </div>
       </div>
@@ -902,6 +874,23 @@ function flagImg(t,cls='flag'){
   const c=FC[t];
   if(!c)return'<span style="font-size:16px;flex-shrink:0">🏳️</span>';
   return`<img class="${cls}" src="https://flagcdn.com/w40/${c}.png" alt="${t}" loading="lazy">`;
+}
+// Flaggen-Kästchen für Admin-Eingabe (mit ID für Live-Update)
+function flagBox(team,boxId){
+  const inner=FC[team]
+    ? `<img class="flag-sm" src="https://flagcdn.com/w40/${FC[team]}.png" alt="${team}">`
+    : '<span style="width:20px;height:14px;background:var(--bg2);border-radius:2px;flex-shrink:0;display:inline-block"></span>';
+  return `<span id="${boxId}" style="display:inline-flex;align-items:center;flex-shrink:0">${inner}</span>`;
+}
+// Live: bei Eingabe im Admin-Teamfeld die Flagge sofort aktualisieren
+function updKOFlag(inputEl,boxId){
+  const box=document.getElementById(boxId);
+  if(!box)return;
+  const t=inputEl.value.trim();
+  const c=FC[t];
+  box.innerHTML=c
+    ? `<img class="flag-sm" src="https://flagcdn.com/w40/${c}.png" alt="${t}">`
+    : '<span style="width:20px;height:14px;background:var(--bg2);border-radius:2px;flex-shrink:0;display:inline-block"></span>';
 }
 
 // ============================================================
@@ -1097,6 +1086,16 @@ GRUPPEN.forEach(g=>g.spiele.forEach(s=>ALL_GP.push({...s,gruppe:g.id})));
 let admDay='all';
 
 const KO_RUNDEN=[
+  {id:'SF',label:'Sechzehntelfinale',icon:'🎯',spiele:[
+    {id:'SF1',label:'SF1',d:'So 28.06.',o:'21:00',t1:'Südafrika',t2:'Kanada'},{id:'SF2',label:'SF2',d:'Mo 29.06.',o:'19:00',t1:'Brasilien',t2:'Japan'},
+    {id:'SF3',label:'SF3',d:'Mo 29.06.',o:'22:30',t1:'Deutschland',t2:'Paraguay'},{id:'SF4',label:'SF4',d:'Di 30.06.',o:'03:00',t1:'Niederlande',t2:'Marokko'},
+    {id:'SF5',label:'SF5',d:'Di 30.06.',o:'19:00',t1:'Elfenbeinküste',t2:'Norwegen'},{id:'SF6',label:'SF6',d:'Di 30.06.',o:'23:00',t1:'Frankreich',t2:'Schweden'},
+    {id:'SF7',label:'SF7',d:'Mi 01.07.',o:'03:00',t1:'Mexiko',t2:'Ecuador'},{id:'SF8',label:'SF8',d:'Do 02.07.',o:'02:00',t1:'USA',t2:'Bosnien-H.'},
+    {id:'SF9',label:'SF9',d:'Do 02.07.',o:'21:00',t1:'Spanien',t2:'Österreich'},{id:'SF10',label:'SF10',d:'Fr 03.07.',o:'01:00',t1:'Portugal',t2:'Kroatien'},
+    {id:'SF11',label:'SF11',d:'Fr 03.07.',o:'05:00',t1:'Schweiz',t2:'Algerien'},{id:'SF12',label:'SF12',d:'Fr 03.07.',o:'20:00',t1:'Australien',t2:'Ägypten'},
+    {id:'SF13',label:'SF13',d:'Sa 04.07.',o:'00:00',t1:'Argentinien',t2:'Kap Verde'},{id:'SF14',label:'SF14',d:'Sa 04.07.',o:'03:30',t1:'Kolumbien',t2:'Ghana'},
+    {id:'SF15',label:'SF15',d:'Sa 04.07.',o:'18:00',t1:'England',t2:'D.R. Kongo'},{id:'SF16',label:'SF16',d:'Sa 04.07.',o:'22:00',t1:'Belgien',t2:'Senegal'},
+  ]},
   {id:'AF',label:'Achtelfinale',icon:'⚔️',spiele:[
     {id:'AF1',label:'AF1',d:'Sa 04.07.',o:'Houston'},{id:'AF2',label:'AF2',d:'Sa 04.07.',o:'Philadelphia'},
     {id:'AF3',label:'AF3',d:'So 05.07.',o:'New York/NJ'},{id:'AF4',label:'AF4',d:'Mo 06.07.',o:'Mexiko-Stadt'},
@@ -1124,7 +1123,7 @@ KO_RUNDEN.forEach(r=>r.spiele.forEach(s=>ALL_KO.push({...s,runde:r.id})));
 // STATE
 // ============================================================
 let CU=null,adminIn=false;
-let tCache={},ergCache={},koCache={},koTCache={},submitCache={};
+let tCache={},ergCache={},koCache={},koTCache={},koTScoreCache={},submitCache={};
 let activeW='W1',admW='W1',curTab='gesamt';
 
 // ============================================================
@@ -1221,7 +1220,7 @@ function loginUser(nick,ud){
   updateBottomNav(true);
   showPage('tabelle',document.querySelector('.nb'));loadTabelle();
 }
-function logout(){closeUserMenu();if(!confirm('Abmelden?'))return;CU=null;adminIn=false;localStorage.removeItem('hetec_nick');document.getElementById('adm-btn').style.display='none';document.getElementById('adm-content').style.display='none';document.getElementById('adm-login-wrap').style.display='';updateBottomNav(false);showAuthPage();}
+function logout(){closeUserMenu();if(!confirm('Abmelden?'))return;CU=null;adminIn=false;localStorage.removeItem('hetec_nick');localStorage.removeItem('hetec_adm_remember');document.getElementById('adm-btn').style.display='none';document.getElementById('adm-content').style.display='none';document.getElementById('adm-login-wrap').style.display='';updateBottomNav(false);showAuthPage();}
 function showErr(el,msg){el.textContent=msg;el.classList.add('show');}
 
 // ============================================================
@@ -1288,33 +1287,66 @@ function ptsGP(t,e){
   return 0;
 }
 
+// KO-Punkte: Sechzehntelfinale (SF*) wird wie Gruppenphase gewertet (Ergebnis: 3/1),
+// alle übrigen KO-Runden über Sieger-Tipp (+2).
+// koA=ko_ergebnisse, mkt=Sieger-Tipps des Spielers, mts=Ergebnis-Tipps des Spielers (ko_tipps_score)
+function ptsKO(s,koA,mkt,mts){
+  const erg=koA[s.id]||{};
+  if(s.id&&s.id.startsWith('SF')){
+    // Ergebnis-Wertung
+    const hasErg=erg.h!==undefined&&erg.h!==''&&erg.g!==undefined&&erg.g!=='';
+    if(!hasErg)return{open:true,p:0,type:'sf'};
+    const t=(mts&&mts[s.id])||{};
+    const r=ptsGP({h:t.h,g:t.g},{h:erg.h,g:erg.g});
+    return{open:false,p:r===null?0:r,r:r,type:'sf'};
+  }
+  // Sieger-Wertung
+  const w=erg.winner;
+  if(!w)return{open:true,p:0,type:'ko'};
+  const my=mkt&&mkt[s.id];
+  const ok=my&&my===w;
+  return{open:false,p:ok?2:0,ok:!!ok,type:'ko'};
+}
+
 // ============================================================
 // TABELLE
 // ============================================================
 function switchTab(t){curTab=t;document.getElementById('tab-g').classList.toggle('active',t==='gesamt');document.getElementById('tab-s').classList.toggle('active',t==='shop');renderTabelle();}
 async function loadTabelle(){
   document.getElementById('tbl-body').innerHTML='<div class="empty"><h3>Lade...</h3></div>';
-  const [sp,tp,erg,koA,koT]=await Promise.all([
+  const [sp,tp,erg,koA,koT,koTS]=await Promise.all([
     dbGet('spieler'),dbGet('tipps'),dbGet('ergebnisse'),
-    dbGet('ko_ergebnisse'),dbGet('ko_tipps')
+    dbGet('ko_ergebnisse'),dbGet('ko_tipps'),dbGet('ko_tipps_score')
   ]);
   ergCache=erg||{};koCache=koA||{};
-  window._tbl={sp,tp:tp||{},erg:erg||{},koA:koA||{},koT:koT||{}};
+  window._tbl={sp,tp:tp||{},erg:erg||{},koA:koA||{},koT:koT||{},koTS:koTS||{}};
   renderTabelle();
 }
 function renderTabelle(){
   const d=window._tbl;if(!d){loadTabelle();return;}
-  const {sp,tp,erg,koA,koT}=d;
-  if(!sp){document.getElementById('tbl-body').innerHTML='<div class="empty"><h3>Noch keine Spieler</h3><p>Registriere dich als Erster!</p></div>';return;}
-  const ri=['🥇','🥈','🥉'];
-  if(curTab==='gesamt'){
-    const rows=Object.entries(sp).map(([nick,info])=>{
-      const mt=tp[nick]||{},mkt=koT[nick]||{};
-      let p=0,ex=0,te=0,wr=0,op=0,ko=0;const dots=[];
-      ALL_GP.forEach(s=>{const t=mt[s.id]||{},e=erg[s.id]||{},r=ptsGP(t,e);if(r===null){op++;dots.push('o');}else if(r===3){ex++;p+=3;dots.push('e');}else if(r===1){te++;p+=1;dots.push('t');}else{wr++;dots.push('w');}});
-      ALL_KO.forEach(s=>{const my=mkt[s.id],w=koA[s.id]&&koA[s.id].winner;if(my&&w&&my===w){ko++;p+=2;}});
-      return{nick,info,p,ex,te,wr,op,ko,dots};
-    });
+    const {sp,tp,erg,koA,koT,koTS}=d;
+    if(!sp){document.getElementById('tbl-body').innerHTML='<div class="empty"><h3>Noch keine Spieler</h3><p>Registriere dich als Erster!</p></div>';return;}
+    const ri=['🥇','🥈','🥉'];
+    if(curTab==='gesamt'){
+      const rows=Object.entries(sp).map(([nick,info])=>{
+        const mt=tp[nick]||{},mkt=koT[nick]||{},mts=(koTS&&koTS[nick])||{};
+        let p=0,ex=0,te=0,wr=0,op=0,ko=0;const dots=[];
+        ALL_GP.forEach(s=>{const t=mt[s.id]||{},e=erg[s.id]||{},r=ptsGP(t,e);if(r===null){op++;dots.push('o');}else if(r===3){ex++;p+=3;dots.push('e');}else if(r===1){te++;p+=1;dots.push('t');}else{wr++;dots.push('w');}});
+        ALL_KO.forEach(s=>{
+          const res=ptsKO(s,koA,mkt,mts);
+          if(res.type==='sf'){
+            // Sechzehntelfinale = Ergebnis-Wertung (zählt in ex/te wie Gruppenphase)
+            if(res.open)return;
+            p+=res.p;
+            if(res.r===3){ex++;dots.push('e');}
+            else if(res.r===1){te++;dots.push('t');}
+            else {wr++;dots.push('w');}
+          } else {
+            if(!res.open&&res.p>0){ko++;p+=res.p;}
+          }
+        });
+        return{nick,info,p,ex,te,wr,op,ko,dots};
+      });
     rows.sort((a,b)=>b.p-a.p||b.ex-a.ex||b.te-a.te);
     let h=`<table><thead><tr><th class="c">#</th><th>Spieler</th><th>Shop</th><th class="c">Pkt</th><th class="c">✓</th><th class="c">~</th><th class="c">✗</th><th class="c">⭐KO</th><th>Verlauf</th></tr></thead><tbody>`;
     rows.forEach((r,i)=>{
@@ -1337,9 +1369,9 @@ function renderTabelle(){
   } else {
     const shopMap={};
     Object.entries(sp).forEach(([nick,info])=>{
-      const mt=tp[nick]||{},mkt=koT[nick]||{};let p=0;
+      const mt=tp[nick]||{},mkt=koT[nick]||{},mts=(koTS&&koTS[nick])||{};let p=0;
       ALL_GP.forEach(s=>{const t=mt[s.id]||{},e=erg[s.id]||{},r=ptsGP(t,e);if(r)p+=r;});
-      ALL_KO.forEach(s=>{const my=mkt[s.id],w=koA[s.id]&&koA[s.id].winner;if(my&&w&&my===w)p+=2;});
+      ALL_KO.forEach(s=>{const res=ptsKO(s,koA,mkt,mts);if(!res.open)p+=res.p;});
       const sn=info.shop||'—';
       if(!shopMap[sn])shopMap[sn]={shop:sn,spieler:[],topP:0,topNick:'',totalP:0};
       shopMap[sn].spieler.push({nick,p});shopMap[sn].totalP+=p;
@@ -1583,13 +1615,15 @@ async function submitTippschein(wId){
 // ============================================================
 async function loadKOTipps(){
   if(!CU)return;
-  const[koE,koT,sub]=await Promise.all([
+  const[koE,koT,koTS,sub]=await Promise.all([
     dbGet('ko_ergebnisse'),
     dbGet('ko_tipps/'+CU.nick),
+    dbGet('ko_tipps_score/'+CU.nick),
     dbGet('tipp_submit/'+CU.nick)
   ]);
   koCache=koE||{};
   koTCache=koT||{};
+  koTScoreCache=koTS||{};
   submitCache=sub||{};
   renderKOTipps();
 }
@@ -1599,11 +1633,87 @@ function renderKOTipps(){
   KO_RUNDEN.forEach(runde=>{
     const rundId='KO_'+runde.id;
     const submitted=!!(submitCache[rundId]&&submitCache[rundId].ts);
+
+    // ===== SECHZEHNTELFINALE: Ergebnis-Tipp (3 Punkte exakt / 1 Punkt Tendenz) =====
+    if(runde.id==='SF'){
+      // Gesperrt pro Spiel: Schein abgegeben ODER Ergebnis eingetragen
+      const hasErg=s=>{const ko=koCache[s.id]||{};return ko.h!==undefined&&ko.h!==''&&ko.g!==undefined&&ko.g!=='';};
+      const tippbar=runde.spiele.filter(s=>(s.t1||koCache[s.id]?.team1)&&(s.t2||koCache[s.id]?.team2)&&!hasErg(s));
+      const getippt=tippbar.filter(s=>{const t=koTScoreCache[s.id]||{};return t.h!==undefined&&t.h!==''&&t.g!==undefined&&t.g!=='';});
+
+      html+=`<div class="ko-section">
+        <div class="ko-title">${runde.icon} ${runde.label}</div>
+        <div style="background:var(--blue-light);border:1px solid rgba(21,101,192,.2);border-radius:8px;padding:9px 13px;margin-bottom:12px;font-size:12px;color:var(--blue);font-weight:500">⭐ Exaktes Ergebnis = <strong>3 Punkte</strong> · Richtige Tendenz = <strong>1 Punkt</strong></div>`;
+
+      // Submit / Status Bar
+      if(submitted){
+        const ts=new Date(submitCache[rundId].ts).toLocaleString('de-DE');
+        html+=`<div class="submit-bar submitted" style="margin-bottom:12px">
+          <div>
+            <div class="submitted-badge">✅ Tippschein abgegeben!</div>
+            <div style="font-size:11px;color:var(--txt2);margin-top:5px">Abgegeben am: <strong>${ts}</strong> · ${getippt.length}/${tippbar.length} Ergebnisse getippt</div>
+            <div style="font-size:11px;color:var(--red);margin-top:2px;font-weight:600">🔒 Keine Änderungen mehr möglich</div>
+          </div>
+        </div>`;
+      } else if(tippbar.length>0){
+        const missing=tippbar.length-getippt.length;
+        html+=`<div class="submit-bar" style="margin-bottom:12px">
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--txt)">Tippschein abgeben — ${runde.label}</div>
+            <div style="font-size:12px;color:var(--txt2);margin-top:3px">${getippt.length} von ${tippbar.length} Ergebnissen getippt${missing>0?' · <span style="color:var(--red)">'+missing+' noch offen</span>':' · <span style="color:var(--green)">Alle getippt ✓</span>'}</div>
+            <div style="font-size:11px;color:var(--txt3);margin-top:2px">⚠️ Nach Abgabe sind keine Änderungen mehr möglich!</div>
+          </div>
+          <button class="btn-submit" onclick="submitKOSchein('${rundId}','${runde.label}')"${getippt.length===0?' disabled':''}>
+            📋 Schein abgeben ${getippt.length===tippbar.length?'✓':'('+getippt.length+'/'+tippbar.length+')'}
+          </button>
+        </div>`;
+      } else {
+        html+=`<div class="week-locked-overlay" style="margin-bottom:12px">
+          <span style="font-size:20px">🔒</span>
+          <div><div>Runde abgeschlossen</div>
+          <div style="font-size:11px;font-weight:400;color:var(--txt2);margin-top:1px">Keine Tipps mehr möglich</div></div>
+        </div>`;
+      }
+
+      html+=`<div class="spl-grid">`;
+      runde.spiele.forEach(s=>{
+        const ko=koCache[s.id]||{};
+        const t1=ko.team1||s.t1,t2=ko.team2||s.t2;
+        const myT=koTScoreCache[s.id]||{h:'',g:''};
+        const erg=hasErg(s)?{h:ko.h,g:ko.g}:null;
+        const lk=submitted||!!erg;
+        let sbH='',edH='';
+        if(erg){
+          const p=ptsGP({h:myT.h,g:myT.g},{h:erg.h,g:erg.g});
+          if(p===3)sbH='<span class="sbadge sb-ex">✓ Exakt +3</span>';
+          else if(p===1)sbH='<span class="sbadge sb-te">~ Tendenz +1</span>';
+          else if(p===0)sbH='<span class="sbadge sb-wr">✗ Falsch +0</span>';
+          edH=`<span class="edisp">Ergebnis: <strong>${erg.h}:${erg.g}</strong></span>`;
+        }
+        html+=`<div class="sc${lk?' locked':''}">
+          <div class="sc-top"><span class="sc-meta">📅 ${s.d} ${s.o}</span><span class="lbadge">${erg?'Ergebnis da':submitted?'Abgegeben':''}</span></div>
+          <div class="sc-teams">
+            <div class="tb home">${flagImg(t1)}<div class="tn">${t1}</div></div>
+            <div class="sbox${erg?' has-r':''}">
+              <input class="sinp" type="number" min="0" max="99" value="${myT.h!==''&&myT.h!==undefined?myT.h:''}" placeholder="–" data-koid="${s.id}" data-side="h" ${lk?'disabled':''} oninput="onKOScore(this)">
+              <span class="ssep">:</span>
+              <input class="sinp" type="number" min="0" max="99" value="${myT.g!==''&&myT.g!==undefined?myT.g:''}" placeholder="–" data-koid="${s.id}" data-side="g" ${lk?'disabled':''} oninput="onKOScore(this)">
+            </div>
+            <div class="tb away"><div class="tn">${t2}</div>${flagImg(t2)}</div>
+          </div>
+          <div class="sc-foot">${edH}${sbH}</div>
+        </div>`;
+      });
+      html+=`</div></div>`;
+      return;
+    }
+
+    // ===== ÜBRIGE KO-RUNDEN: Sieger anklicken (+2) =====
     // Runde gesperrt wenn: Schein abgegeben ODER mind. 1 Sieger eingetragen
     const rundeLocked=submitted||runde.spiele.some(s=>koCache[s.id]&&koCache[s.id].winner);
 
     // Zähle tippbare Spiele (teams bekannt, kein winner noch)
-    const tippbar=runde.spiele.filter(s=>{const ko=koCache[s.id]||{};return ko.team1&&ko.team2&&!ko.winner;});
+    const tippbar=runde.spiele.filter(s=>{const ko=koCache[s.id]||{};return (ko.team1||s.t1)&&(ko.team2||s.t2)&&!ko.winner;});
     const getippt=tippbar.filter(s=>koTCache[s.id]);
 
     html+=`<div class="ko-section">
@@ -1648,7 +1758,7 @@ function renderKOTipps(){
     html+=`<div class="ko-grid">`;
     runde.spiele.forEach(s=>{
       const ko=koCache[s.id]||{};
-      const t1=ko.team1||null,t2=ko.team2||null,winner=ko.winner||null,myT=koTCache[s.id]||null;
+      const t1=ko.team1||s.t1||null,t2=ko.team2||s.t2||null,winner=ko.winner||null,myT=koTCache[s.id]||null;
       const hasBoth=t1&&t2;
       const isLocked=!!winner||rundeLocked;
       html+=`<div class="ko-card${isLocked?' locked':''}">
@@ -1680,6 +1790,17 @@ function renderKOTipps(){
   });
   document.getElementById('ko-content').innerHTML=html;
 }
+
+// Ergebnis-Tipp Sechzehntelfinale speichern
+async function onKOScore(el){
+  if(!CU)return;
+  const sid=el.dataset.koid,side=el.dataset.side;
+  let v=el.value;
+  if(v!==''){v=Math.max(0,Math.min(99,parseInt(v)||0));}
+  if(!koTScoreCache[sid])koTScoreCache[sid]={h:'',g:''};
+  koTScoreCache[sid][side]=v===''?'':v;
+  await dbUpd('ko_tipps_score/'+CU.nick,{[sid]:koTScoreCache[sid]});
+}
 async function selKO(sid, team, rundId){
   if(!CU)return;
   // Block if submitted
@@ -1698,19 +1819,28 @@ async function submitKOSchein(rundId, rundLabel){
   // Find runde
   const runde=KO_RUNDEN.find(r=>'KO_'+r.id===rundId);
   if(!runde)return;
-  const tippbar=runde.spiele.filter(s=>{const ko=koCache[s.id]||{};return ko.team1&&ko.team2&&!ko.winner;});
-  const getippt=tippbar.filter(s=>koTCache[s.id]);
+  let tippbar,getippt,einheit;
+  if(runde.id==='SF'){
+    const hasErg=s=>{const ko=koCache[s.id]||{};return ko.h!==undefined&&ko.h!==''&&ko.g!==undefined&&ko.g!=='';};
+    tippbar=runde.spiele.filter(s=>(s.t1||koCache[s.id]?.team1)&&(s.t2||koCache[s.id]?.team2)&&!hasErg(s));
+    getippt=tippbar.filter(s=>{const t=koTScoreCache[s.id]||{};return t.h!==undefined&&t.h!==''&&t.g!==undefined&&t.g!=='';});
+    einheit='Ergebnis';
+  } else {
+    tippbar=runde.spiele.filter(s=>{const ko=koCache[s.id]||{};return (ko.team1||s.t1)&&(ko.team2||s.t2)&&!ko.winner;});
+    getippt=tippbar.filter(s=>koTCache[s.id]);
+    einheit='Sieger';
+  }
   const missing=tippbar.length-getippt.length;
 
   // 🔒 FIX 2b: Leerer KO-Schein blockieren
   if(getippt.length===0){
-    alert('❌ Du hast noch keinen Sieger getippt!\n\nBitte tippe mindestens einen Sieger bevor du den Schein abgibst.');
+    alert('❌ Du hast noch kein '+einheit+' getippt!\n\nBitte tippe mindestens ein '+einheit+' bevor du den Schein abgibst.');
     return;
   }
 
   const msg=missing>0
     ? `⚠️ Du hast nur ${getippt.length} von ${tippbar.length} Spielen getippt.\n\n${missing} Spiel(e) noch offen!\n\nTrotzdem abgeben? Danach sind KEINE Änderungen mehr möglich!`
-    : `✅ Alle ${tippbar.length} Sieger getippt!\n\nTippschein für ${rundLabel} jetzt abgeben?\nDanach sind KEINE Änderungen mehr möglich!`;
+    : `✅ Alle ${tippbar.length} ${einheit}-Tipps abgegeben!\n\nTippschein für ${rundLabel} jetzt abgeben?\nDanach sind KEINE Änderungen mehr möglich!`;
 
   if(!confirm(msg))return;
 
@@ -1729,8 +1859,19 @@ async function submitKOSchein(rundId, rundLabel){
 // ============================================================
 // ADMIN
 // ============================================================
-function doAdmLogin(){const pw=document.getElementById('apw').value,e=document.getElementById('ae');if(pw!==window._ADMIN_PW){showErr(e,'Falsches Passwort');return;}adminIn=true;document.getElementById('adm-login-wrap').style.display='none';document.getElementById('adm-content').style.display='';document.getElementById('adm-btn').style.display='';loadAdmGP();initAdminApiCheck();toast('✅ Admin eingeloggt','ok');}
-function initAdmin(){if(adminIn){loadAdmGP();initAdminApiCheck();}}
+function doAdmLogin(){const pw=document.getElementById('apw').value,e=document.getElementById('ae');if(pw!==window._ADMIN_PW){showErr(e,'Falsches Passwort');return;}const rem=document.getElementById('apw-remember');if(rem&&rem.checked){localStorage.setItem('hetec_adm_remember','1');}else{localStorage.removeItem('hetec_adm_remember');}adminIn=true;document.getElementById('adm-login-wrap').style.display='none';document.getElementById('adm-content').style.display='';document.getElementById('adm-btn').style.display='';loadAdmGP();initAdminApiCheck();toast('✅ Admin eingeloggt','ok');}
+// Auto-Login wenn "Angemeldet bleiben" aktiv war
+function tryAdmAutoLogin(){
+  if(adminIn)return;
+  if(localStorage.getItem('hetec_adm_remember')!=='1')return;
+  adminIn=true;
+  const lw=document.getElementById('adm-login-wrap'),ac=document.getElementById('adm-content'),ab=document.getElementById('adm-btn');
+  if(lw)lw.style.display='none';
+  if(ac)ac.style.display='';
+  if(ab)ab.style.display='';
+  loadAdmGP();initAdminApiCheck();
+}
+function initAdmin(){if(adminIn){loadAdmGP();initAdminApiCheck();return;}tryAdmAutoLogin();}
 function admTab(t){
   ['gp','ko','uebersicht','mit'].forEach(x=>{
     document.getElementById('adm-'+x+'-wrap').style.display=t===x?'':'none';
@@ -1802,9 +1943,8 @@ function renderAdmGP(){
   days.forEach(day=>{
     const dayLabel=new Date(day+'T12:00:00').toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
     const daySpiele=spiele.filter(s=>s.dt===day).sort(compareSpielStart);
-    html+=`<section class="admin-day-section">`;
-    html+=`<div class="admin-day-title">📅 ${dayLabel} · ${daySpiele.length} Spiel(e) · chronologisch sortiert</div>`;
-    html+=`<div class="admin-day-games">`;
+    html+=`<div style="margin:18px 0 10px;padding:10px 14px;border-radius:10px;background:var(--acc-light);border:1px solid rgba(232,168,0,.25);font-weight:800;color:var(--acc-dark)">📅 ${dayLabel} · ${daySpiele.length} Spiel(e) · chronologisch sortiert</div>`;
+    html+=`<div class="adm-grid">`;
     daySpiele.forEach(s=>{
       const e=ergCache[s.id]||{h:'',g:''};
       const saved=e.h!==''&&e.h!==undefined&&e.g!==''&&e.g!==undefined;
@@ -1816,7 +1956,7 @@ function renderAdmGP(){
           <span class="ea-ok" id="ea-ok-${s.id}" style="${saved?'':'display:none'}">${saved?'✓':''}</span>
         </div></div>`;
     });
-    html+='</div></section>';
+    html+='</div>';
   });
 
   document.getElementById('adm-grid').innerHTML=html;
@@ -1834,6 +1974,28 @@ let admWinSel={};
 
 // Vollständiger Turnierbaum laut FIFA-Spielplan
 const BRACKET=[
+  {
+    runde:'🎯 Sechzehntelfinale',
+    farbe:'#7b1fa2',
+    spiele:[
+      {id:'SF1',label:'SF1',d:'So 28.06. 21:00',o:'',  info:'Südafrika : Kanada',t1:'Südafrika',t2:'Kanada'},
+      {id:'SF2',label:'SF2',d:'Mo 29.06. 19:00',o:'',  info:'Brasilien : Japan',t1:'Brasilien',t2:'Japan'},
+      {id:'SF3',label:'SF3',d:'Mo 29.06. 22:30',o:'',  info:'Deutschland : Paraguay',t1:'Deutschland',t2:'Paraguay'},
+      {id:'SF4',label:'SF4',d:'Di 30.06. 03:00',o:'',  info:'Niederlande : Marokko',t1:'Niederlande',t2:'Marokko'},
+      {id:'SF5',label:'SF5',d:'Di 30.06. 19:00',o:'',  info:'Elfenbeinküste : Norwegen',t1:'Elfenbeinküste',t2:'Norwegen'},
+      {id:'SF6',label:'SF6',d:'Di 30.06. 23:00',o:'',  info:'Frankreich : Schweden',t1:'Frankreich',t2:'Schweden'},
+      {id:'SF7',label:'SF7',d:'Mi 01.07. 03:00',o:'',  info:'Mexiko : Ecuador',t1:'Mexiko',t2:'Ecuador'},
+      {id:'SF8',label:'SF8',d:'Do 02.07. 02:00',o:'',  info:'USA : Bosnien-H.',t1:'USA',t2:'Bosnien-H.'},
+      {id:'SF9',label:'SF9',d:'Do 02.07. 21:00',o:'',  info:'Spanien : Österreich',t1:'Spanien',t2:'Österreich'},
+      {id:'SF10',label:'SF10',d:'Fr 03.07. 01:00',o:'',info:'Portugal : Kroatien',t1:'Portugal',t2:'Kroatien'},
+      {id:'SF11',label:'SF11',d:'Fr 03.07. 05:00',o:'',info:'Schweiz : Algerien',t1:'Schweiz',t2:'Algerien'},
+      {id:'SF12',label:'SF12',d:'Fr 03.07. 20:00',o:'',info:'Australien : Ägypten',t1:'Australien',t2:'Ägypten'},
+      {id:'SF13',label:'SF13',d:'Sa 04.07. 00:00',o:'',info:'Argentinien : Kap Verde',t1:'Argentinien',t2:'Kap Verde'},
+      {id:'SF14',label:'SF14',d:'Sa 04.07. 03:30',o:'',info:'Kolumbien : Ghana',t1:'Kolumbien',t2:'Ghana'},
+      {id:'SF15',label:'SF15',d:'Sa 04.07. 18:00',o:'',info:'England : D.R. Kongo',t1:'England',t2:'D.R. Kongo'},
+      {id:'SF16',label:'SF16',d:'Sa 04.07. 22:00',o:'',info:'Belgien : Senegal',t1:'Belgien',t2:'Senegal'},
+    ]
+  },
   {
     runde:'⚔️ Achtelfinale',
     farbe:'#1565c0',
@@ -1891,6 +2053,11 @@ function renderAdmKO(){
     📋 <strong>Ablauf:</strong> Teams eintragen → Speichern → Sieger anklicken → Speichern. Sobald ein Sieger gesetzt ist, werden die Tipps der Spieler automatisch ausgewertet.
   </div>`;
 
+  // Hinweis Sechzehntelfinale
+  html+=`<div style="background:#7b1fa215;border:1px solid #7b1fa240;border-radius:8px;padding:11px 14px;margin-bottom:18px;font-size:12px;color:#7b1fa2;font-weight:500">
+    🎯 <strong>Sechzehntelfinale:</strong> Die 16 Begegnungen sind bereits hinterlegt und für alle Spieler sichtbar. Du musst nur noch den Sieger anklicken & speichern.
+  </div>`;
+
   BRACKET.forEach(runde=>{
     html+=`<div class="ko-section">
       <div class="ko-title" style="border-bottom:2px solid ${runde.farbe}20;color:var(--txt)">
@@ -1900,7 +2067,7 @@ function renderAdmKO(){
 
     runde.spiele.forEach(s=>{
       const ko=koCache[s.id]||{};
-      const t1=ko.team1||'', t2=ko.team2||'', w=ko.winner||'';
+      const t1=ko.team1||s.t1||'', t2=ko.team2||s.t2||'', w=ko.winner||'';
       const hasBoth=t1&&t2;
       const selW=admWinSel[s.id]||w;
 
@@ -1920,44 +2087,62 @@ function renderAdmKO(){
           <div>
             <div style="font-size:10px;color:var(--txt3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Team 1</div>
             <div style="display:flex;align-items:center;gap:6px">
-              ${t1?flagImg(t1,'flag-sm'):'<span style="width:20px;height:14px;background:var(--bg2);border-radius:2px;flex-shrink:0;display:inline-block"></span>'}
-              <input class="fi" style="padding:7px 9px;font-size:12px;min-width:0" id="ko-t1-${s.id}" value="${t1}" placeholder="Team eingeben..." list="tl">
+              ${flagBox(t1,'ko-fb1-'+s.id)}
+              <input class="fi" style="padding:7px 9px;font-size:12px;min-width:0" id="ko-t1-${s.id}" value="${t1}" placeholder="Team eingeben..." list="tl" oninput="updKOFlag(this,'ko-fb1-${s.id}')">
             </div>
           </div>
           <div>
             <div style="font-size:10px;color:var(--txt3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Team 2</div>
             <div style="display:flex;align-items:center;gap:6px">
-              ${t2?flagImg(t2,'flag-sm'):'<span style="width:20px;height:14px;background:var(--bg2);border-radius:2px;flex-shrink:0;display:inline-block"></span>'}
-              <input class="fi" style="padding:7px 9px;font-size:12px;min-width:0" id="ko-t2-${s.id}" value="${t2}" placeholder="Team eingeben..." list="tl">
+              ${flagBox(t2,'ko-fb2-'+s.id)}
+              <input class="fi" style="padding:7px 9px;font-size:12px;min-width:0" id="ko-t2-${s.id}" value="${t2}" placeholder="Team eingeben..." list="tl" oninput="updKOFlag(this,'ko-fb2-${s.id}')">
             </div>
           </div>
         </div>
 
-        <!-- Sieger wählen -->
-        <div style="font-size:10px;color:var(--txt3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">Sieger / Weiterkommer</div>`;
+        <!-- Ergebnis / Sieger -->`;
 
-      if(hasBoth){
-        [t1,t2].forEach(team=>{
-          const isSel=selW===team;
-          html+=`<div onclick="selAdmW('${s.id}','${team}')"
-            style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:1.5px solid ${isSel?'var(--green)':'var(--b1)'};background:${isSel?'var(--green-light)':'var(--s2)'};cursor:pointer;margin-bottom:5px;transition:all .15s">
-            ${flagImg(team,'flag-sm')}
-            <span style="font-size:13px;font-weight:700;flex:1">${team}</span>
-            ${isSel?'<span style="color:var(--green);font-size:12px;font-weight:700">✓ Sieger</span>':'<span style="color:var(--txt3);font-size:11px">Tippen</span>'}
-          </div>`;
-        });
+      const isSF=s.id&&s.id.startsWith('SF');
+      if(isSF){
+        const eh=(ko.h!==undefined&&ko.h!=='')?ko.h:'';
+        const eg=(ko.g!==undefined&&ko.g!=='')?ko.g:'';
+        html+=`<div style="font-size:10px;color:var(--txt3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">Endergebnis eintragen</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:6px">
+          <span style="font-size:12px;font-weight:700;flex:1;text-align:right">${t1||'Team 1'}</span>
+          <input class="fi" type="number" min="0" max="99" style="width:50px;text-align:center;font-size:16px;font-weight:700;padding:6px" id="ko-eh-${s.id}" value="${eh}" placeholder="–">
+          <span style="font-weight:700;color:var(--txt3)">:</span>
+          <input class="fi" type="number" min="0" max="99" style="width:50px;text-align:center;font-size:16px;font-weight:700;padding:6px" id="ko-eg-${s.id}" value="${eg}" placeholder="–">
+          <span style="font-size:12px;font-weight:700;flex:1;text-align:left">${t2||'Team 2'}</span>
+        </div>
+        <div style="font-size:10px;color:var(--txt3);text-align:center;margin-bottom:6px">Bei Verlängerung/Elfmeter: Stand nach 90 Min eintragen (oder Endstand inkl. Verl.)</div>`;
       } else {
-        html+=`<div style="border:1.5px dashed var(--b2);border-radius:8px;padding:10px;text-align:center;color:var(--txt3);font-size:12px;margin-bottom:8px">
-          Erst Teams eingeben & speichern
-        </div>`;
+        html+=`<div style="font-size:10px;color:var(--txt3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">Sieger / Weiterkommer</div>`;
+        if(hasBoth){
+          [t1,t2].forEach(team=>{
+            const isSel=selW===team;
+            html+=`<div onclick="selAdmW('${s.id}','${team}')"
+              style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:1.5px solid ${isSel?'var(--green)':'var(--b1)'};background:${isSel?'var(--green-light)':'var(--s2)'};cursor:pointer;margin-bottom:5px;transition:all .15s">
+              ${flagImg(team,'flag-sm')}
+              <span style="font-size:13px;font-weight:700;flex:1">${team}</span>
+              ${isSel?'<span style="color:var(--green);font-size:12px;font-weight:700">✓ Sieger</span>':'<span style="color:var(--txt3);font-size:11px">Tippen</span>'}
+            </div>`;
+          });
+        } else {
+          html+=`<div style="border:1.5px dashed var(--b2);border-radius:8px;padding:10px;text-align:center;color:var(--txt3);font-size:12px;margin-bottom:8px">
+            Erst Teams eingeben & speichern
+          </div>`;
+        }
       }
 
+      const sfDone=isSF&&ko.h!==undefined&&ko.h!==''&&ko.g!==undefined&&ko.g!=='';
+      const okTxt=isSF?(sfDone?'✓ Ergebnis: '+ko.h+':'+ko.g:''):(w?'✓ Sieger eingetragen: '+w:'');
+      const okShow=isSF?sfDone:!!w;
       html+=`<button onclick="saveAdmKO('${s.id}')"
         style="width:100%;background:${runde.farbe};border:none;border-radius:7px;color:#fff;cursor:pointer;font-size:13px;font-weight:700;padding:8px;margin-top:4px;transition:opacity .15s"
         onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
-        💾 Speichern${selW?' — Sieger: '+selW:''}
+        💾 Speichern${!isSF&&selW?' — Sieger: '+selW:''}
       </button>
-      <div id="ko-ok-${s.id}" style="text-align:center;font-size:11px;font-weight:600;color:var(--green);margin-top:5px;${w?'':'display:none'}">${w?'✓ Sieger eingetragen: '+w:''}</div>
+      <div id="ko-ok-${s.id}" style="text-align:center;font-size:11px;font-weight:600;color:var(--green);margin-top:5px;${okShow?'':'display:none'}">${okTxt}</div>
       </div>`;
     });
 
@@ -1972,8 +2157,28 @@ function selAdmW(sid,team){admWinSel[sid]=team;renderAdmKO();}
 async function saveAdmKO(sid){
   const t1=document.getElementById('ko-t1-'+sid).value.trim();
   const t2=document.getElementById('ko-t2-'+sid).value.trim();
-  const w=admWinSel[sid]||koCache[sid]?.winner||'';
   if(!t1||!t2){toast('Beide Teams eingeben','er');return;}
+  const isSF=sid&&sid.startsWith('SF');
+
+  if(isSF){
+    const ehEl=document.getElementById('ko-eh-'+sid),egEl=document.getElementById('ko-eg-'+sid);
+    const ehv=ehEl?ehEl.value:'',egv=egEl?egEl.value:'';
+    if(ehv===''||egv===''){toast('Ergebnis eingeben (z.B. 2:1)','er');return;}
+    const h=Math.max(0,Math.min(99,parseInt(ehv)||0));
+    const g=Math.max(0,Math.min(99,parseInt(egv)||0));
+    // Sieger aus Ergebnis ableiten (für Achtelfinal-Bracket). Bei Unentschieden: kein Sieger gesetzt.
+    const data={team1:t1,team2:t2,h:h,g:g};
+    if(h>g)data.winner=t1; else if(g>h)data.winner=t2;
+    await dbUpd('ko_ergebnisse',{[sid]:data});
+    koCache[sid]=data;
+    const ok=document.getElementById('ko-ok-'+sid);
+    if(ok){ok.style.display='block';ok.textContent='✓ Ergebnis: '+h+':'+g+(data.winner?' · Sieger: '+data.winner:' (Unentschieden)');}
+    toast('✅ Ergebnis gespeichert','ok');
+    renderAdmKO();
+    return;
+  }
+
+  const w=admWinSel[sid]||koCache[sid]?.winner||'';
   const data={team1:t1,team2:t2};
   if(w)data.winner=w;
   await dbUpd('ko_ergebnisse',{[sid]:data});
@@ -1981,6 +2186,32 @@ async function saveAdmKO(sid){
   const ok=document.getElementById('ko-ok-'+sid);
   if(ok){ok.style.display='block';ok.textContent=w?'✓ Sieger eingetragen: '+w:'✓ Teams gespeichert';}
   toast('✅ Gespeichert','ok');
+  renderAdmKO();
+}
+
+// Sechzehntelfinale-Begegnungen laut Spielplan (Bild/FIFA)
+const SF_PAIRINGS={
+  SF1:['Südafrika','Kanada'],   SF2:['Brasilien','Japan'],
+  SF3:['Deutschland','Paraguay'],SF4:['Niederlande','Marokko'],
+  SF5:['Elfenbeinküste','Norwegen'],SF6:['Frankreich','Schweden'],
+  SF7:['Mexiko','Ecuador'],     SF8:['USA','Bosnien-H.'],
+  SF9:['Spanien','Österreich'], SF10:['Portugal','Kroatien'],
+  SF11:['Schweiz','Algerien'],  SF12:['Australien','Ägypten'],
+  SF13:['Argentinien','Kap Verde'],SF14:['Kolumbien','Ghana'],
+  SF15:['England','D.R. Kongo'],SF16:['Belgien','Senegal'],
+};
+async function prefillSF(){
+  if(!confirm('Alle 16 Sechzehntelfinale-Begegnungen eintragen?\n\nVorhandene Sieger werden NICHT überschrieben.'))return;
+  const upd={};
+  Object.entries(SF_PAIRINGS).forEach(([sid,[t1,t2]])=>{
+    const ex=koCache[sid]||{};
+    const data={team1:t1,team2:t2};
+    if(ex.winner)data.winner=ex.winner;
+    upd[sid]=data;
+    koCache[sid]=data;
+  });
+  await dbUpd('ko_ergebnisse',upd);
+  toast('✅ 16 SF-Begegnungen eingetragen','ok');
   renderAdmKO();
 }
 
@@ -2575,10 +2806,11 @@ async function openTippscheinVerlauf(){
   document.getElementById('verlauf-body').innerHTML='<div class="empty"><h3>Lade...</h3></div>';
 
   // Load all data
-  const[sub,mt,koT,erg,koE]=await Promise.all([
+  const[sub,mt,koT,koTS,erg,koE]=await Promise.all([
     dbGet('tipp_submit/'+CU.nick),
     dbGet('tipps/'+CU.nick),
     dbGet('ko_tipps/'+CU.nick),
+    dbGet('ko_tipps_score/'+CU.nick),
     dbGet('ergebnisse'),
     dbGet('ko_ergebnisse')
   ]);
@@ -2586,6 +2818,7 @@ async function openTippscheinVerlauf(){
   const allSub=sub||{};
   const allTipps=mt||{};
   const allKoT=koT||{};
+  const allKoTS=koTS||{};
   const allErg=erg||{};
   const allKoE=koE||{};
 
@@ -2681,7 +2914,7 @@ async function openTippscheinVerlauf(){
     const s=allSub[rundId];
     if(!s)return;
     const ts=new Date(s.ts).toLocaleString('de-DE');
-    const tippbar=runde.spiele.filter(sp=>{const ko=allKoE[sp.id]||{};return ko.team1&&ko.team2;});
+    const tippbar=runde.spiele.filter(sp=>{const ko=allKoE[sp.id]||{};return (ko.team1||sp.t1)&&(ko.team2||sp.t2);});
     let kopts=0,kok=0;
 
     html+=`<div class="tipp-card">
@@ -2697,9 +2930,43 @@ async function openTippscheinVerlauf(){
 
     runde.spiele.forEach(sp=>{
       const ko=allKoE[sp.id]||{};
-      const myT=allKoT[sp.id]||null;
-      const t1=ko.team1||null,t2=ko.team2||null,winner=ko.winner||null;
+      const t1=ko.team1||sp.t1||null,t2=ko.team2||sp.t2||null,winner=ko.winner||null;
       const hasBoth=t1&&t2;
+      const isSF=sp.id&&sp.id.startsWith('SF');
+
+      if(isSF){
+        const myT=allKoTS[sp.id]||null;
+        const hasMyT=myT&&myT.h!==undefined&&myT.h!==''&&myT.g!==undefined&&myT.g!=='';
+        const hasErg=ko.h!==undefined&&ko.h!==''&&ko.g!==undefined&&ko.g!=='';
+        let pBadge='';
+        if(!hasMyT){
+          pBadge='<span style="font-size:10px;color:var(--txt3);flex-shrink:0">nicht getippt</span>';
+        } else if(hasErg){
+          const r=ptsGP({h:myT.h,g:myT.g},{h:ko.h,g:ko.g});
+          if(r===3){kopts+=3;kok++;pBadge='<span class="sbadge sb-ex" style="flex-shrink:0">✓ +3</span>';}
+          else if(r===1){kopts+=1;pBadge='<span class="sbadge sb-te" style="flex-shrink:0">~ +1</span>';}
+          else pBadge='<span class="sbadge sb-wr" style="flex-shrink:0">✗ +0</span>';
+        } else {
+          pBadge='<span style="font-size:10px;color:var(--txt2);flex-shrink:0">Ergebnis ausstehend</span>';
+        }
+        html+=`<div class="schein-spiel-row">
+          <div style="display:flex;align-items:center;gap:5px;flex:1;min-width:0">
+            ${flagImg(t1,'flag-sm')}
+            <span style="font-size:12px;font-weight:600">${t1}</span>
+            <span style="color:var(--txt3);font-size:10px">vs</span>
+            <span style="font-size:12px;font-weight:600">${t2}</span>
+            ${flagImg(t2,'flag-sm')}
+          </div>
+          <div style="font-size:12px;font-weight:700;color:var(--acc-dark);white-space:nowrap;flex-shrink:0">
+            ${hasMyT?'Tipp: '+myT.h+':'+myT.g:'—'}
+          </div>
+          ${hasErg?`<div style="font-size:10px;color:var(--txt3);white-space:nowrap;flex-shrink:0">(Erg: ${ko.h}:${ko.g})</div>`:''}
+          ${pBadge}
+        </div>`;
+        return;
+      }
+
+      const myT=allKoT[sp.id]||null;
       let pBadge='';
       if(!hasBoth){
         pBadge='<span style="font-size:10px;color:var(--txt3);flex-shrink:0">Teams noch offen</span>';
