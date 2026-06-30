@@ -440,6 +440,7 @@ tr:hover td{background:var(--s2)}
     <a class="logo" href="#">
       <div class="lbox">WM<br>26</div>
       <div class="ltxt">HeTec <span>Tippspiel</span></div>
+      <span id="verBadge" style="font-size:9px;font-weight:700;color:var(--txt3);background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:1px 5px;margin-left:6px;align-self:center"></span>
     </a>
     <nav id="mnav" style="display:none">
       <button class="nb active" onclick="showPage('tabelle',this)">🏆 Tabelle</button>
@@ -765,10 +766,11 @@ tr:hover td{background:var(--s2)}
           <div class="fg" style="margin:0;flex:1;min-width:150px">
             <label class="fl">Woche / Phase</label>
             <select class="fi" id="uebersicht-woche-sel" onchange="loadSpielerUebersicht()">
-              <option value="all">Alle Wochen</option>
+              <option value="all">Alle Wochen + KO</option>
               <option value="W1">Woche 1</option>
               <option value="W2">Woche 2</option>
               <option value="W3">Woche 3</option>
+              <option value="ko">— Nur KO-Runden —</option>
             </select>
           </div>
           <button class="btn-api" style="margin-top:18px" onclick="loadAlleUebersicht()">
@@ -848,6 +850,18 @@ tr:hover td{background:var(--s2)}
     <div style="display:flex;gap:9px;margin-top:4px">
       <button class="btn-p" style="flex:1;font-size:14px;padding:10px" onclick="saveEdit()">Speichern</button>
       <button class="btn-o" onclick="closeMo()">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<div class="mo" id="schein-mo">
+  <div class="mb" style="max-width:520px;max-height:85vh;display:flex;flex-direction:column">
+    <div class="mt2">🔓 Tippscheine freigeben</div>
+    <div id="schein-sub" style="font-size:12px;color:var(--txt2);margin-bottom:4px"></div>
+    <div style="font-size:11px;color:var(--txt3);margin-bottom:14px">Tippe auf eine Runde, um sie aufzuklappen. Gib einzelne Spiele frei, damit der Mitarbeiter sie erneut tippen kann — nur möglich, solange das Spiel noch nicht gestartet ist.</div>
+    <div id="schein-list" style="overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch"></div>
+    <div style="display:flex;gap:9px;margin-top:14px;flex-shrink:0">
+      <button class="btn-o" style="flex:1" onclick="closeScheinMo()">Schließen</button>
     </div>
   </div>
 </div>
@@ -1123,7 +1137,27 @@ KO_RUNDEN.forEach(r=>r.spiele.forEach(s=>ALL_KO.push({...s,runde:r.id})));
 // STATE
 // ============================================================
 let CU=null,adminIn=false;
-let tCache={},ergCache={},koCache={},koTCache={},koTScoreCache={},submitCache={};
+const APP_VERSION='v64';
+// Versions-Badge anzeigen + Cache-Bust: bei neuer Version einmalig hart neu laden
+(function(){
+  try{
+    const vb=document.getElementById('verBadge');
+    if(vb)vb.textContent=APP_VERSION;
+    const seen=localStorage.getItem('hetec_app_ver');
+    if(seen!==APP_VERSION){
+      const reloadedFor=sessionStorage.getItem('hetec_reloaded_for');
+      localStorage.setItem('hetec_app_ver',APP_VERSION);
+      // Nur einmal pro Session neu laden, um Endlosschleifen zu vermeiden
+      if(reloadedFor!==APP_VERSION){
+        sessionStorage.setItem('hetec_reloaded_for',APP_VERSION);
+        const u=new URL(location.href);
+        u.searchParams.set('v',APP_VERSION+'_'+Date.now());
+        location.replace(u.toString());
+      }
+    }
+  }catch(e){}
+})();
+let tCache={},ergCache={},koCache={},koTCache={},koTScoreCache={},submitCache={},freigabeCache={};
 let activeW='W1',admW='W1',curTab='gesamt';
 
 // ============================================================
@@ -1420,14 +1454,16 @@ function buildWsel(elId,active,cb){
 }
 async function loadTipps(){
   if(!CU)return;
-  const[mt,erg,sub]=await Promise.all([
+  const[mt,erg,sub,frg]=await Promise.all([
     dbGet('tipps/'+CU.nick),
     dbGet('ergebnisse'),
-    dbGet('tipp_submit/'+CU.nick)
+    dbGet('tipp_submit/'+CU.nick),
+    dbGet('tipp_freigabe/'+CU.nick)
   ]);
   tCache=mt||{};
   ergCache=erg||{};
   submitCache=sub||{};
+  freigabeCache=frg||{};
   // Auto-select the latest available (unlocked) week
   const verfuegbar=WOCHEN.filter(w=>isWocheFreigeschaltet(w));
   if(verfuegbar.length>0){
@@ -1491,7 +1527,7 @@ function renderWoche(){
     const wsp=gr.spiele.filter(s=>spiele.find(x=>x.id===s.id));
     html+=`<div class="g-hdr"><div class="g-badge">${gr.id}</div><div class="g-info"><h3>Gruppe ${gr.id}</h3><p>${gr.teams.map(t=>`<span class="g-team-pill">${flagImg(t,'flag-sm')}<span>${t}</span></span>`).join('')}</p></div></div><div class="spl-grid">`;
     wsp.forEach(s=>{
-      const t=tCache[s.id]||{h:'',g:''};const e=ergCache[s.id];const hasE=e!==undefined&&e.h!==''&&e.h!==undefined;const lk=submitted||hasE||!darfSpielNochGetipptWerden(s);
+      const t=tCache[s.id]||{h:'',g:''};const e=ergCache[s.id];const hasE=e!==undefined&&e.h!==''&&e.h!==undefined;const freigegeben=!!freigabeCache[s.id]&&!hasE&&darfSpielNochGetipptWerden(s);const lk=(submitted&&!freigegeben)||hasE||!darfSpielNochGetipptWerden(s);
       const lockInfo=tippLockText(s,hasE,submitted);
       let sbH='',edH='';
       if(hasE){const p=ptsGP({h:t.h,g:t.g},{h:e.h,g:e.g});if(p===3)sbH='<span class="sbadge sb-ex">✓ Exakt +3</span>';else if(p===1)sbH='<span class="sbadge sb-te">~ Tendenz +1</span>';else if(p===0)sbH='<span class="sbadge sb-wr">✗ Falsch +0</span>';edH=`<span class="edisp">Ergebnis: <strong>${e.h}:${e.g}</strong></span>`;}
@@ -1545,7 +1581,8 @@ function onTipp(inp){
   const spiel=ALL_GP.find(x=>x.id===sid);
   const ergebnis=ergCache[sid];
   const hasE=ergebnis!==undefined&&ergebnis.h!==''&&ergebnis.h!==undefined;
-  if((submitCache[activeW]&&submitCache[activeW].ts)||hasE||!darfSpielNochGetipptWerden(spiel)){
+  const freigegeben=!!freigabeCache[sid]&&!hasE&&darfSpielNochGetipptWerden(spiel);
+  if((submitCache[activeW]&&submitCache[activeW].ts&&!freigegeben)||hasE||!darfSpielNochGetipptWerden(spiel)){
     inp.value=inp.defaultValue;
     toast('🔒 Tipp nicht mehr möglich: Spiel hat begonnen oder ist abgeschlossen','er');
     return;
@@ -1563,7 +1600,8 @@ async function saveTipp(sid){
   const spiel=ALL_GP.find(x=>x.id===sid);
   const ergebnis=ergCache[sid];
   const hasE=ergebnis!==undefined&&ergebnis.h!==''&&ergebnis.h!==undefined;
-  if((submitCache[activeW]&&submitCache[activeW].ts)||hasE||!darfSpielNochGetipptWerden(spiel)){
+  const freigegeben=!!freigabeCache[sid]&&!hasE&&darfSpielNochGetipptWerden(spiel);
+  if((submitCache[activeW]&&submitCache[activeW].ts&&!freigegeben)||hasE||!darfSpielNochGetipptWerden(spiel)){
     toast('🔒 Tipp nicht gespeichert: Spiel hat begonnen oder ist abgeschlossen','er');
     return;
   }
@@ -1615,16 +1653,18 @@ async function submitTippschein(wId){
 // ============================================================
 async function loadKOTipps(){
   if(!CU)return;
-  const[koE,koT,koTS,sub]=await Promise.all([
+  const[koE,koT,koTS,sub,frg]=await Promise.all([
     dbGet('ko_ergebnisse'),
     dbGet('ko_tipps/'+CU.nick),
     dbGet('ko_tipps_score/'+CU.nick),
-    dbGet('tipp_submit/'+CU.nick)
+    dbGet('tipp_submit/'+CU.nick),
+    dbGet('tipp_freigabe/'+CU.nick)
   ]);
   koCache=koE||{};
   koTCache=koT||{};
   koTScoreCache=koTS||{};
   submitCache=sub||{};
+  freigabeCache=frg||{};
   renderKOTipps();
 }
 
@@ -1681,7 +1721,8 @@ function renderKOTipps(){
         const t1=ko.team1||s.t1,t2=ko.team2||s.t2;
         const myT=koTScoreCache[s.id]||{h:'',g:''};
         const erg=hasErg(s)?{h:ko.h,g:ko.g}:null;
-        const lk=submitted||!!erg;
+        const freigegeben=!!freigabeCache[s.id]&&!erg; // Admin hat dieses Spiel wieder freigegeben (nur ohne Ergebnis)
+        const lk=(submitted&&!freigegeben)||!!erg;
         let sbH='',edH='';
         if(erg){
           const p=ptsGP({h:myT.h,g:myT.g},{h:erg.h,g:erg.g});
@@ -2288,6 +2329,7 @@ async function loadMit(){
       <td style="color:var(--txt3);font-size:11px">${d}</td>
       <td><div style="display:flex;gap:4px">
         <button class="btn-sm" onclick="openEdit('${nick}','${(info.vorname||'').replace(/'/g,"\\'")}','${(info.nachname||'').replace(/'/g,"\\'")}','${(info.shop||'').replace(/'/g,"\\'")}')">✏️</button>
+        <button class="btn-sm" style="background:var(--blue-light);color:var(--blue)" onclick="openSchein('${nick}')" title="Tippscheine freigeben">🔓</button>
         <button class="btn-sm del" onclick="delMit('${nick}')">🗑️</button>
       </div></td></tr>`;
   });
@@ -2319,6 +2361,153 @@ async function delMit(nick){
   toast('🗑️ '+nick+' gelöscht — kann sich neu registrieren','ok');
 }
 function closeMo(){document.getElementById('edit-mo').classList.remove('open');}
+
+// ===== Tippscheine eines Mitarbeiters freigeben =====
+function closeScheinMo(){document.getElementById('schein-mo').classList.remove('open');}
+// Runde im Freigabe-Modal auf-/zuklappen
+function toggleScheinRd(cid){
+  const el=document.getElementById(cid);
+  const arrow=document.getElementById(cid+'-arrow');
+  if(!el)return;
+  const open=el.style.display!=='none';
+  el.style.display=open?'none':'block';
+  if(arrow)arrow.style.transform=open?'rotate(0deg)':'rotate(180deg)';
+}
+
+async function openSchein(nick){
+  const sub=document.getElementById('schein-sub');
+  const list=document.getElementById('schein-list');
+  sub.textContent=nick;
+  list.innerHTML='<div style="text-align:center;color:var(--txt3);padding:16px;font-size:13px">Lade...</div>';
+  document.getElementById('schein-mo').classList.add('open');
+
+  const[submits,erg,koE,koTS,koT,gpTipps,frg]=await Promise.all([
+    dbGet('tipp_submit/'+nick),
+    dbGet('ergebnisse'),
+    dbGet('ko_ergebnisse'),
+    dbGet('ko_tipps_score/'+nick),
+    dbGet('ko_tipps/'+nick),
+    dbGet('tipps/'+nick),
+    dbGet('tipp_freigabe/'+nick)
+  ]);
+  const KOE=koE||{}, KOTS=koTS||{}, KOT=koT||{}, GPT=gpTipps||{}, FRG=frg||{}, ERG=erg||{};
+
+  if(!submits||Object.keys(submits).length===0){
+    list.innerHTML='<div style="text-align:center;color:var(--txt3);padding:20px;font-size:13px;background:var(--s2);border-radius:8px">Dieser Mitarbeiter hat noch keinen Tippschein abgegeben.</div>';
+    return;
+  }
+
+  let h='';
+  Object.keys(submits).forEach(rundId=>{
+    const subm=submits[rundId];
+    const ts=subm&&subm.ts?new Date(subm.ts).toLocaleString('de-DE'):'-';
+    let label='', spiele=[], typ='';
+
+    if(rundId==='KO_SF'){
+      label='🎯 Sechzehntelfinale'; typ='sf';
+      spiele=KO_RUNDEN.find(r=>r.id==='SF').spiele.map(s=>({...s,t1:s.t1,t2:s.t2}));
+    } else if(rundId.startsWith('KO_')){
+      const r=KO_RUNDEN.find(x=>'KO_'+x.id===rundId);
+      label=r?(r.icon+' '+r.label):rundId; typ='ko';
+      spiele=r?r.spiele.slice():[];
+    } else {
+      const w=WOCHEN.find(x=>x.id===rundId);
+      label=w?('⚽ '+w.label):rundId; typ='gp';
+      spiele=w?ALL_GP.filter(s=>s.dt>=w.von&&s.dt<=w.bis):[];
+    }
+
+    // Pro Spiel: gestartet? freigegeben? Tipp?
+    const rows=spiele.map(s=>{
+      let gestartet=false, tippTxt='—', teams='';
+      if(typ==='gp'){
+        const e=ERG[s.id]; const hasE=e&&e.h!==undefined&&e.h!=='';
+        gestartet=hasE||!darfSpielNochGetipptWerden(s);
+        const t=GPT[s.id]; tippTxt=t&&t.h!==undefined&&t.h!==''?`${t.h}:${t.g}`:'—';
+        teams=`${s.h} – ${s.g}`;
+      } else if(typ==='sf'){
+        const k=KOE[s.id]||{}; const hasE=k.h!==undefined&&k.h!==''&&k.g!==undefined&&k.g!=='';
+        gestartet=hasE;
+        const t=KOTS[s.id]; tippTxt=t&&t.h!==undefined&&t.h!==''?`${t.h}:${t.g}`:'—';
+        teams=`${(k.team1||s.t1)} – ${(k.team2||s.t2)}`;
+      } else { // ko
+        const k=KOE[s.id]||{}; gestartet=!!k.winner;
+        tippTxt=KOT[s.id]||'—';
+        teams=`${(k.team1||'?')} – ${(k.team2||'?')}`;
+      }
+      const released=!!FRG[s.id]&&!gestartet;
+      return{s,gestartet,tippTxt,teams,released};
+    });
+
+    const offenCount=rows.filter(r=>!r.gestartet).length;
+    const cid='schein-rd-'+rundId.replace(/[^a-zA-Z0-9]/g,'');
+
+    h+=`<div style="border:1px solid var(--b1);border-radius:10px;margin-bottom:10px;overflow:hidden">
+      <div style="padding:10px 13px;background:var(--s2);display:flex;align-items:center;gap:8px;cursor:pointer" onclick="toggleScheinRd('${cid}')">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700;color:var(--txt)">${label}</div>
+          <div style="font-size:11px;color:var(--txt3);margin-top:2px">Abgegeben: ${ts} · <span style="${offenCount>0?'color:var(--blue);font-weight:700':'color:var(--txt3)'}">${offenCount} offen</span> / ${rows.length} Spiele</div>
+        </div>
+        ${offenCount>0?`<button class="btn-sm" style="background:var(--blue);color:#fff;white-space:nowrap;padding:6px 10px;font-weight:700" onclick="event.stopPropagation();releaseAllOpen('${nick}','${rundId}')">🔓 Alle offenen</button>`:'<span style="font-size:11px;color:var(--txt3);font-weight:600;white-space:nowrap">🔒 alle gestartet</span>'}
+        <span id="${cid}-arrow" style="color:var(--txt3);font-size:13px;transition:transform .15s">▾</span>
+      </div>
+      <div id="${cid}" style="display:none;padding:6px 8px;border-top:1px solid var(--b1)">`;
+
+    rows.forEach(({s,gestartet,tippTxt,teams,released})=>{
+      h+=`<div style="display:flex;align-items:center;gap:8px;padding:6px 6px;border-bottom:1px solid var(--bg2);font-size:12px">
+        <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          <span style="color:var(--txt3);font-size:10px">${s.label||''}</span> ${teams}
+          <span style="color:var(--acc-dark);font-weight:700;margin-left:4px">${tippTxt}</span>
+        </div>
+        ${gestartet
+          ? '<span style="font-size:10px;color:var(--txt3);white-space:nowrap">🔒 gestartet</span>'
+          : released
+            ? `<span style="font-size:10px;color:var(--green);font-weight:700;white-space:nowrap">✓ frei</span> <button class="btn-sm" style="padding:3px 7px;font-size:10px" onclick="toggleFreigabe('${nick}','${rundId}','${s.id}',false)">rückgängig</button>`
+            : `<button class="btn-sm" style="background:var(--blue-light);color:var(--blue);padding:3px 9px;font-size:11px;font-weight:700;white-space:nowrap" onclick="toggleFreigabe('${nick}','${rundId}','${s.id}',true)">🔓 freigeben</button>`}
+      </div>`;
+    });
+
+    h+=`</div></div>`;
+  });
+  list.innerHTML=h;
+}
+
+// Einzelnes Spiel freigeben/sperren. Beim Freigeben wird die Runden-Submit-Sperre für dieses Spiel aufgehoben.
+async function toggleFreigabe(nick,rundId,sid,on){
+  await dbSet('tipp_freigabe/'+nick+'/'+sid, on?true:null);
+  toast(on?'🔓 Spiel freigegeben':'🔒 Freigabe zurückgenommen','ok');
+  openSchein(nick);
+}
+
+// Alle noch nicht gestarteten Spiele einer Runde freigeben
+async function releaseAllOpen(nick,rundId){
+  let spiele=[];
+  if(rundId==='KO_SF') spiele=KO_RUNDEN.find(r=>r.id==='SF').spiele;
+  else if(rundId.startsWith('KO_')){const r=KO_RUNDEN.find(x=>'KO_'+x.id===rundId);spiele=r?r.spiele:[];}
+  else {const w=WOCHEN.find(x=>x.id===rundId);spiele=w?ALL_GP.filter(s=>s.dt>=w.von&&s.dt<=w.bis):[];}
+
+  const[erg,koE]=await Promise.all([dbGet('ergebnisse'),dbGet('ko_ergebnisse')]);
+  const ERG=erg||{}, KOE=koE||{};
+  const upd={};
+  spiele.forEach(s=>{
+    let gestartet=false;
+    if(rundId==='KO_SF'){const k=KOE[s.id]||{};gestartet=k.h!==undefined&&k.h!==''&&k.g!==undefined&&k.g!=='';}
+    else if(rundId.startsWith('KO_')){const k=KOE[s.id]||{};gestartet=!!k.winner;}
+    else {const e=ERG[s.id];gestartet=(e&&e.h!==undefined&&e.h!=='')||!darfSpielNochGetipptWerden(s);}
+    if(!gestartet)upd[s.id]=true;
+  });
+  if(Object.keys(upd).length===0){toast('Keine offenen Spiele zum Freigeben','er');return;}
+  if(!confirm(`${Object.keys(upd).length} noch nicht gestartete Spiel(e) für ${nick} freigeben?\n\nDer Mitarbeiter kann diese erneut tippen. Bereits gestartete Spiele bleiben gesperrt.`))return;
+  await dbUpd('tipp_freigabe/'+nick, upd);
+  toast('🔓 '+Object.keys(upd).length+' Spiele freigegeben','ok');
+  openSchein(nick);
+}
+
+async function releaseSchein(nick,rundId,label){
+  if(!confirm(`Tippschein "${label}" von ${nick} freigeben?\n\nDer Mitarbeiter kann diese Runde danach erneut tippen und neu abgeben.\nDie bisher getippten Werte bleiben erhalten — er muss nur erneut abgeben.`))return;
+  await dbSet('tipp_submit/'+nick+'/'+rundId, null);
+  toast('🔓 Schein freigegeben','ok');
+  openSchein(nick); // Liste aktualisieren
+}
 document.getElementById('edit-mo').addEventListener('click',function(e){if(e.target===this)closeMo();});
 // ============================================================
 // ADMIN TIPP-ÜBERSICHT
@@ -2343,17 +2532,22 @@ async function loadSpielerUebersicht(){
   const woche=document.getElementById('uebersicht-woche-sel').value;
   if(!nick){ document.getElementById('uebersicht-content').innerHTML='<div class="empty"><h3>Spieler wählen</h3></div>'; return; }
 
-  const[sp,mt,erg]=await Promise.all([
+  const[sp,mt,erg,koE,koT,koTS]=await Promise.all([
     dbGet('spieler/'+nick),
     dbGet('tipps/'+nick),
-    dbGet('ergebnisse')
+    dbGet('ergebnisse'),
+    dbGet('ko_ergebnisse'),
+    dbGet('ko_tipps/'+nick),
+    dbGet('ko_tipps_score/'+nick)
   ]);
 
   const tipps=mt||{};
   const ergebnisse=erg||{};
   const info=sp||{};
+  const KOE=koE||{}, KOT=koT||{}, KOTS=koTS||{};
 
-  const wochen=woche==='all'?WOCHEN:WOCHEN.filter(w=>w.id===woche);
+  const nurKO=woche==='ko';
+  const wochen=(woche==='all')?WOCHEN:(nurKO?[]:WOCHEN.filter(w=>w.id===woche));
   let totalPts=0, totalEx=0, totalTe=0, totalWr=0;
 
   let html=`<div style="background:linear-gradient(135deg,var(--acc-light),var(--s2));border:1px solid rgba(232,168,0,.2);border-radius:10px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
@@ -2419,6 +2613,78 @@ async function loadSpielerUebersicht(){
     },0);
   });
 
+  // ===== KO-RUNDEN (Sechzehntelfinale, Achtelfinale, ... Finale) =====
+  if(woche==='all'||nurKO){
+    KO_RUNDEN.forEach(runde=>{
+      const isSF=runde.id==='SF';
+      let rPts=0,rEx=0,rTe=0,rWr=0,rKo=0;
+      let rowsHtml='';
+      let anyData=false;
+
+      runde.spiele.forEach(s=>{
+        const ko=KOE[s.id]||{};
+        const t1=ko.team1||s.t1||null, t2=ko.team2||s.t2||null;
+        if(!t1||!t2)return; // Teams noch nicht bekannt -> nicht anzeigen
+        anyData=true;
+
+        if(isSF){
+          const hasE=ko.h!==undefined&&ko.h!==''&&ko.g!==undefined&&ko.g!=='';
+          const t=KOTS[s.id]||{};
+          const hasT=t.h!==undefined&&t.h!==''&&t.g!==undefined&&t.g!=='';
+          let rowCls='open',scoreCls='open',badge='';
+          if(!hasT){rowCls='not-tipped';}
+          else if(hasE){
+            const p=ptsGP({h:t.h,g:t.g},{h:ko.h,g:ko.g});
+            if(p===3){rowCls='exact';scoreCls='exact';rEx++;totalEx++;rPts+=3;totalPts+=3;badge='<span class="pts-pill pts-3">+3</span>';}
+            else if(p===1){rowCls='tendency';scoreCls='tendency';rTe++;totalTe++;rPts+=1;totalPts+=1;badge='<span class="pts-pill pts-1">+1</span>';}
+            else{rowCls='wrong';scoreCls='wrong';rWr++;totalWr++;badge='<span class="pts-pill pts-0">+0</span>';}
+          }
+          const ergShow=hasE?(ko.pen&&ko.rh!==undefined?`${ko.rh}:${ko.rg} n.E.`:`${ko.h}:${ko.g}`):'';
+          rowsHtml+=`<div class="tipp-row ${rowCls}">
+            <div style="display:flex;align-items:center;gap:5px;flex:1;min-width:0">${flagImg(t1,'flag-sm')}<span style="font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t1}</span></div>
+            <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+              <div class="tipp-score ${scoreCls}">${hasT?t.h+':'+t.g:'—'}</div>
+              ${hasE?`<div style="font-size:9px;color:var(--txt3);text-align:center">Erg.<br><span class="erg-score">${ergShow}</span></div>`:''}
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;flex:1;min-width:0;justify-content:flex-end"><span style="font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right">${t2}</span>${flagImg(t2,'flag-sm')}</div>
+            ${badge}
+          </div>`;
+        } else {
+          // Sieger-Tipp Runden
+          const winner=ko.winner||null;
+          const myT=KOT[s.id]||null;
+          let rowCls='open',badge='';
+          if(!myT){rowCls='not-tipped';}
+          else if(winner){
+            const ok=myT===winner;
+            if(ok){rowCls='exact';rKo++;rPts+=2;totalPts+=2;badge='<span class="pts-pill pts-3">+2</span>';}
+            else{rowCls='wrong';badge='<span class="pts-pill pts-0">+0</span>';}
+          }
+          rowsHtml+=`<div class="tipp-row ${rowCls}">
+            <div style="display:flex;align-items:center;gap:5px;flex:1;min-width:0">${flagImg(t1,'flag-sm')}<span style="font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t1}</span></div>
+            <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;font-size:11px">
+              <span style="color:var(--acc-dark);font-weight:700">${myT?'Tipp: '+myT:'—'}</span>
+              ${winner?`<span style="color:var(--txt3)">· Sieger: ${winner}</span>`:''}
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;flex:1;min-width:0;justify-content:flex-end"><span style="font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right">${t2}</span>${flagImg(t2,'flag-sm')}</div>
+            ${badge}
+          </div>`;
+        }
+      });
+
+      if(!anyData)return; // Runde überspringen, wenn keine Teams feststehen
+
+      const scoreInfo=isSF
+        ? `<span style="color:var(--green);font-weight:700">${rPts} Pkt</span> · <span style="color:var(--green)">✓${rEx}</span> <span style="color:var(--blue)">~${rTe}</span> <span style="color:var(--red)">✗${rWr}</span>`
+        : `<span style="color:var(--green);font-weight:700">${rPts} Pkt</span> · <span style="color:var(--acc-dark)">⭐${rKo} Sieger</span>`;
+
+      html+=`<div class="tipp-card"><div class="tipp-card-header">
+        <span style="font-weight:700;font-size:14px">${runde.icon} ${runde.label}</span>
+        <span style="font-size:12px;color:var(--txt2)">${scoreInfo}</span>
+      </div>${rowsHtml}</div>`;
+    });
+  }
+
   // Total summary
   html=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
     <div style="background:var(--s1);border:1px solid var(--b1);border-radius:8px;padding:10px;text-align:center;box-shadow:var(--shadow)">
@@ -2444,23 +2710,28 @@ async function loadSpielerUebersicht(){
 
 async function loadAlleUebersicht(){
   const woche=document.getElementById('uebersicht-woche-sel').value;
-  const[sp,allTipps,erg]=await Promise.all([
-    dbGet('spieler'),dbGet('tipps'),dbGet('ergebnisse')
+  const[sp,allTipps,erg,koE,allKoT,allKoTS]=await Promise.all([
+    dbGet('spieler'),dbGet('tipps'),dbGet('ergebnisse'),
+    dbGet('ko_ergebnisse'),dbGet('ko_tipps'),dbGet('ko_tipps_score')
   ]);
   if(!sp){document.getElementById('uebersicht-content').innerHTML='<div class="empty"><h3>Keine Spieler</h3></div>';return;}
 
   const ergebnisse=erg||{};
-  const wochen=woche==='all'?WOCHEN:WOCHEN.filter(w=>w.id===woche);
+  const KOE=koE||{}, AKT=allKoT||{}, AKTS=allKoTS||{};
+  const nurKO=woche==='ko';
+  const wochen=(woche==='all')?WOCHEN:(nurKO?[]:WOCHEN.filter(w=>w.id===woche));
   const spiele=wochen.flatMap(w=>ALL_GP.filter(s=>s.dt>=w.von&&s.dt<=w.bis));
+  const inclKO=(woche==='all'||nurKO);
 
   let html=`<div style="font-size:13px;font-weight:700;color:var(--txt);margin-bottom:12px">
-    👥 Alle ${Object.keys(sp).length} Spieler — ${woche==='all'?'Alle Wochen':wochen[0]?.label}
+    👥 Alle ${Object.keys(sp).length} Spieler — ${woche==='all'?'Alle Wochen + KO':nurKO?'Nur KO-Runden':wochen[0]?.label}
   </div>
   <div class="all-spieler-grid">`;
 
   // Sort by points
   const rows=Object.entries(sp).map(([nick,info])=>{
     const tipps=(allTipps&&allTipps[nick])||{};
+    const mkt=(AKT&&AKT[nick])||{}, mts=(AKTS&&AKTS[nick])||{};
     let pts=0,ex=0,te=0,wr=0,open=0;
     spiele.forEach(s=>{
       const t=tipps[s.id]||{};const e=ergebnisse[s.id]||{};
@@ -2470,6 +2741,18 @@ async function loadAlleUebersicht(){
       else if(r===1){te++;pts+=1;}
       else{wr++;}
     });
+    if(inclKO){
+      ALL_KO.forEach(s=>{
+        const res=ptsKO(s,KOE,mkt,mts);
+        if(res.type==='sf'){
+          if(res.open)return;
+          pts+=res.p;
+          if(res.r===3)ex++; else if(res.r===1)te++; else wr++;
+        } else {
+          if(!res.open&&res.p>0)pts+=res.p;
+        }
+      });
+    }
     return{nick,info,pts,ex,te,wr,open,tipps};
   }).sort((a,b)=>b.pts-a.pts||b.ex-a.ex);
 
@@ -3003,7 +3286,7 @@ async function openTippscheinVerlauf(){
         } else if(hasErg){
           const r=ptsGP({h:myT.h,g:myT.g},{h:ko.h,g:ko.g});
           if(r===3){kopts+=3;kok++;pBadge='<span class="sbadge sb-ex" style="flex-shrink:0">✓ +3</span>';}
-          else if(r===1){kopts+=1;pBadge='<span class="sbadge sb-te" style="flex-shrink:0">~ +1</span>';}
+          else if(r===1){kopts+=1;kok++;pBadge='<span class="sbadge sb-te" style="flex-shrink:0">~ +1</span>';}
           else pBadge='<span class="sbadge sb-wr" style="flex-shrink:0">✗ +0</span>';
         } else {
           pBadge='<span style="font-size:10px;color:var(--txt2);flex-shrink:0">Ergebnis ausstehend</span>';
