@@ -1137,7 +1137,7 @@ KO_RUNDEN.forEach(r=>r.spiele.forEach(s=>ALL_KO.push({...s,runde:r.id})));
 // STATE
 // ============================================================
 let CU=null,adminIn=false;
-const APP_VERSION='v64';
+const APP_VERSION='v66';
 // Versions-Badge anzeigen + Cache-Bust: bei neuer Version einmalig hart neu laden
 (function(){
   try{
@@ -1327,11 +1327,13 @@ function ptsGP(t,e){
 function ptsKO(s,koA,mkt,mts){
   const erg=koA[s.id]||{};
   if(s.id&&s.id.startsWith('SF')){
-    // Ergebnis-Wertung
-    const hasErg=erg.h!==undefined&&erg.h!==''&&erg.g!==undefined&&erg.g!=='';
+    // Ergebnis-Wertung. Bei Elfmeter/Verlängerung (pen gesetzt) zählt der echte Stand rh:rg.
+    const wh = erg.pen!==undefined&&erg.pen!==''&&erg.rh!==undefined&&erg.rh!=='' ? erg.rh : erg.h;
+    const wg = erg.pen!==undefined&&erg.pen!==''&&erg.rg!==undefined&&erg.rg!=='' ? erg.rg : erg.g;
+    const hasErg=wh!==undefined&&wh!==''&&wg!==undefined&&wg!=='';
     if(!hasErg)return{open:true,p:0,type:'sf'};
     const t=(mts&&mts[s.id])||{};
-    const r=ptsGP({h:t.h,g:t.g},{h:erg.h,g:erg.g});
+    const r=ptsGP({h:t.h,g:t.g},{h:wh,g:wg});
     return{open:false,p:r===null?0:r,r:r,type:'sf'};
   }
   // Sieger-Wertung
@@ -1340,6 +1342,14 @@ function ptsKO(s,koA,mkt,mts){
   const my=mkt&&mkt[s.id];
   const ok=my&&my===w;
   return{open:false,p:ok?2:0,ok:!!ok,type:'ko'};
+}
+// Gewertetes SF-Ergebnis (echter Stand bei Elfmeter/Verlängerung)
+function sfWertErg(ko){
+  if(!ko)return{h:undefined,g:undefined};
+  const pen=ko.pen!==undefined&&ko.pen!=='';
+  const wh=(pen&&ko.rh!==undefined&&ko.rh!=='')?ko.rh:ko.h;
+  const wg=(pen&&ko.rg!==undefined&&ko.rg!=='')?ko.rg:ko.g;
+  return{h:wh,g:wg};
 }
 
 // ============================================================
@@ -1720,7 +1730,7 @@ function renderKOTipps(){
         const ko=koCache[s.id]||{};
         const t1=ko.team1||s.t1,t2=ko.team2||s.t2;
         const myT=koTScoreCache[s.id]||{h:'',g:''};
-        const erg=hasErg(s)?{h:ko.h,g:ko.g}:null;
+        const erg=hasErg(s)?sfWertErg(ko):null;
         const freigegeben=!!freigabeCache[s.id]&&!erg; // Admin hat dieses Spiel wieder freigegeben (nur ohne Ergebnis)
         const lk=(submitted&&!freigegeben)||!!erg;
         let sbH='',edH='';
@@ -1730,7 +1740,7 @@ function renderKOTipps(){
           else if(p===1)sbH='<span class="sbadge sb-te">~ Tendenz +1</span>';
           else if(p===0)sbH='<span class="sbadge sb-wr">✗ Falsch +0</span>';
           const realShown=(ko.rh!==undefined&&ko.rh!=='')?(ko.rh+':'+ko.rg):(erg.h+':'+erg.g);
-          const penNote=ko.pen?` <span style="color:var(--txt3);font-weight:500">(${realShown} n.E./n.V., weiter: ${ko.pen} · Wertung 1:0)</span>`:'';
+          const penNote=ko.pen?` <span style="color:var(--txt3);font-weight:500">(n.E./n.V., weiter: ${ko.pen})</span>`:'';
           edH=`<span class="edisp">Ergebnis: <strong>${ko.pen?realShown:erg.h+':'+erg.g}</strong>${penNote}</span>`;
         }
         html+=`<div class="sc${lk?' locked':''}">
@@ -2184,7 +2194,7 @@ function renderAdmKO(){
               <input type="radio" name="pen-${s.id}" value="${t2}" ${penWinner===t2?'checked':''} style="accent-color:var(--green)" onchange="setPenWinner('${s.id}','${t2}')">${flagImg(t2,'flag-sm')} ${t2}
             </label>
           </div>
-          <div style="font-size:10px;color:var(--txt3);margin-top:5px">Wird für die Tipp-Wertung als <strong>1:0</strong> für den Gewinner gezählt.</div>
+          <div style="font-size:10px;color:var(--txt3);margin-top:5px">Das echte Ergebnis (z.B. 1:1) wird für die Tipp-Wertung gezählt. Der Gewinner zählt nur fürs Weiterkommen.</div>
         </div>`;
       } else {
         html+=`<div style="font-size:10px;color:var(--txt3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">Sieger / Weiterkommer</div>`;
@@ -2251,16 +2261,15 @@ async function saveAdmKO(sid){
     const tie=rh===rg;
 
     if(tie){
-      // Unentschieden → Verlängerung/Elfmeter: Gewinner muss gewählt werden
+      // Unentschieden → Verlängerung/Elfmeter: Gewinner muss gewählt werden (nur fürs Weiterkommen)
       const penW=admPenSel[sid]||koCache[sid]?.pen||'';
       if(!penW){toast('Bitte wählen wer nach Verl./Elfmeter weiterkommt','er');return;}
-      // Gewertetes Ergebnis = 1:0 für den Gewinner; echter Stand separat
-      const h=penW===t1?1:0, g=penW===t2?1:0;
-      const data={team1:t1,team2:t2,h:h,g:g,rh:rh,rg:rg,pen:penW,winner:penW};
+      // Gewertetes Ergebnis = echtes Ergebnis (z.B. 1:1). Sieger zählt NUR fürs Bracket.
+      const data={team1:t1,team2:t2,h:rh,g:rg,rh:rh,rg:rg,pen:penW,winner:penW};
       await dbUpd('ko_ergebnisse',{[sid]:data});
       koCache[sid]=data;
       const ok=document.getElementById('ko-ok-'+sid);
-      if(ok){ok.style.display='block';ok.textContent='✓ '+rh+':'+rg+' n.E./n.V. · Weiter: '+penW+' (Wertung 1:0)';}
+      if(ok){ok.style.display='block';ok.textContent='✓ '+rh+':'+rg+' n.E./n.V. · Weiter: '+penW+' (Wertung '+rh+':'+rg+')';}
       toast('✅ Ergebnis gespeichert','ok');
       renderAdmKO();
       return;
@@ -2634,7 +2643,8 @@ async function loadSpielerUebersicht(){
           let rowCls='open',scoreCls='open',badge='';
           if(!hasT){rowCls='not-tipped';}
           else if(hasE){
-            const p=ptsGP({h:t.h,g:t.g},{h:ko.h,g:ko.g});
+            const we=sfWertErg(ko);
+            const p=ptsGP({h:t.h,g:t.g},{h:we.h,g:we.g});
             if(p===3){rowCls='exact';scoreCls='exact';rEx++;totalEx++;rPts+=3;totalPts+=3;badge='<span class="pts-pill pts-3">+3</span>';}
             else if(p===1){rowCls='tendency';scoreCls='tendency';rTe++;totalTe++;rPts+=1;totalPts+=1;badge='<span class="pts-pill pts-1">+1</span>';}
             else{rowCls='wrong';scoreCls='wrong';rWr++;totalWr++;badge='<span class="pts-pill pts-0">+0</span>';}
@@ -3284,7 +3294,8 @@ async function openTippscheinVerlauf(){
         if(!hasMyT){
           pBadge='<span style="font-size:10px;color:var(--txt3);flex-shrink:0">nicht getippt</span>';
         } else if(hasErg){
-          const r=ptsGP({h:myT.h,g:myT.g},{h:ko.h,g:ko.g});
+          const we=sfWertErg(ko);
+          const r=ptsGP({h:myT.h,g:myT.g},{h:we.h,g:we.g});
           if(r===3){kopts+=3;kok++;pBadge='<span class="sbadge sb-ex" style="flex-shrink:0">✓ +3</span>';}
           else if(r===1){kopts+=1;kok++;pBadge='<span class="sbadge sb-te" style="flex-shrink:0">~ +1</span>';}
           else pBadge='<span class="sbadge sb-wr" style="flex-shrink:0">✗ +0</span>';
