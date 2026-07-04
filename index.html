@@ -1111,10 +1111,10 @@ const KO_RUNDEN=[
     {id:'SF15',label:'SF15',d:'Sa 04.07.',o:'18:00',t1:'England',t2:'D.R. Kongo'},{id:'SF16',label:'SF16',d:'Sa 04.07.',o:'22:00',t1:'Belgien',t2:'Senegal'},
   ]},
   {id:'AF',label:'Achtelfinale',icon:'⚔️',spiele:[
-    {id:'AF1',label:'AF1',d:'Sa 04.07.',o:'Houston'},{id:'AF2',label:'AF2',d:'Sa 04.07.',o:'Philadelphia'},
-    {id:'AF3',label:'AF3',d:'So 05.07.',o:'New York/NJ'},{id:'AF4',label:'AF4',d:'Mo 06.07.',o:'Mexiko-Stadt'},
-    {id:'AF5',label:'AF5',d:'Mo 06.07.',o:'Dallas'},{id:'AF6',label:'AF6',d:'Di 07.07.',o:'Seattle'},
-    {id:'AF7',label:'AF7',d:'Di 07.07.',o:'Atlanta'},{id:'AF8',label:'AF8',d:'Di 07.07.',o:'Vancouver'},
+    {id:'AF1',label:'AF1',d:'Sa 04.07.',o:'19:00',t1:'Kanada',t2:'Marokko'},{id:'AF2',label:'AF2',d:'Sa 04.07.',o:'23:00',t1:'Paraguay',t2:'Frankreich'},
+    {id:'AF3',label:'AF3',d:'So 05.07.',o:'22:00',t1:'Brasilien',t2:'Norwegen'},{id:'AF4',label:'AF4',d:'Mo 06.07.',o:'02:00',t1:'Mexiko',t2:'England'},
+    {id:'AF5',label:'AF5',d:'Mo 06.07.',o:'21:00',t1:'Portugal',t2:'Spanien'},{id:'AF6',label:'AF6',d:'Di 07.07.',o:'02:00',t1:'USA',t2:'Belgien'},
+    {id:'AF7',label:'AF7',d:'Di 07.07.',o:'18:00',t1:'Argentinien',t2:'Ägypten'},{id:'AF8',label:'AF8',d:'Di 07.07.',o:'22:00',t1:'Schweiz',t2:'Kolumbien'},
   ]},
   {id:'VF',label:'Viertelfinale',icon:'🏅',spiele:[
     {id:'VF1',label:'VF1',d:'Do 09.07.',o:'Boston'},{id:'VF2',label:'VF2',d:'Fr 10.07.',o:'Los Angeles'},
@@ -1132,12 +1132,18 @@ const KO_RUNDEN=[
 ];
 const ALL_KO=[];
 KO_RUNDEN.forEach(r=>r.spiele.forEach(s=>ALL_KO.push({...s,runde:r.id})));
+// Alle KO-Runden werden als Ergebnis-Tipp gewertet (3 Punkte exakt / 1 Punkt Tendenz), wie die Gruppenphase.
+const ERGEBNIS_RUNDEN=['SF','AF','VF','HF','TP','FIN'];
+function istErgRunde(id){return ERGEBNIS_RUNDEN.includes(id);}
+// Prefix eines Spiels (z.B. 'AF1' -> 'AF') zur Runden-Erkennung
+function spielRunde(sid){const m=(sid||'').match(/^([A-Z]+)/);return m?m[1]:'';}
+function istErgSpiel(sid){return istErgRunde(spielRunde(sid));}
 
 // ============================================================
 // STATE
 // ============================================================
 let CU=null,adminIn=false;
-const APP_VERSION='v66';
+const APP_VERSION='v67';
 // Versions-Badge anzeigen + Cache-Bust: bei neuer Version einmalig hart neu laden
 (function(){
   try{
@@ -1326,7 +1332,7 @@ function ptsGP(t,e){
 // koA=ko_ergebnisse, mkt=Sieger-Tipps des Spielers, mts=Ergebnis-Tipps des Spielers (ko_tipps_score)
 function ptsKO(s,koA,mkt,mts){
   const erg=koA[s.id]||{};
-  if(s.id&&s.id.startsWith('SF')){
+  if(istErgSpiel(s.id)){
     // Ergebnis-Wertung. Bei Elfmeter/Verlängerung (pen gesetzt) zählt der echte Stand rh:rg.
     const wh = erg.pen!==undefined&&erg.pen!==''&&erg.rh!==undefined&&erg.rh!=='' ? erg.rh : erg.h;
     const wg = erg.pen!==undefined&&erg.pen!==''&&erg.rg!==undefined&&erg.rg!=='' ? erg.rg : erg.g;
@@ -1685,7 +1691,7 @@ function renderKOTipps(){
     const submitted=!!(submitCache[rundId]&&submitCache[rundId].ts);
 
     // ===== SECHZEHNTELFINALE: Ergebnis-Tipp (3 Punkte exakt / 1 Punkt Tendenz) =====
-    if(runde.id==='SF'){
+    if(istErgRunde(runde.id)){
       // Gesperrt pro Spiel: Schein abgegeben ODER Ergebnis eingetragen
       const hasErg=s=>{const ko=koCache[s.id]||{};return ko.h!==undefined&&ko.h!==''&&ko.g!==undefined&&ko.g!=='';};
       const tippbar=runde.spiele.filter(s=>(s.t1||koCache[s.id]?.team1)&&(s.t2||koCache[s.id]?.team2)&&!hasErg(s));
@@ -1873,7 +1879,7 @@ async function submitKOSchein(rundId, rundLabel){
   const runde=KO_RUNDEN.find(r=>'KO_'+r.id===rundId);
   if(!runde)return;
   let tippbar,getippt,einheit;
-  if(runde.id==='SF'){
+  if(istErgRunde(runde.id)){
     const hasErg=s=>{const ko=koCache[s.id]||{};return ko.h!==undefined&&ko.h!==''&&ko.g!==undefined&&ko.g!=='';};
     tippbar=runde.spiele.filter(s=>(s.t1||koCache[s.id]?.team1)&&(s.t2||koCache[s.id]?.team2)&&!hasErg(s));
     // Werte frisch aus den Eingabefeldern lesen und in Cache+DB sichern (verhindert Zähl-Diskrepanz)
@@ -2067,14 +2073,14 @@ const BRACKET=[
     runde:'⚔️ Achtelfinale',
     farbe:'#1565c0',
     spiele:[
-      {id:'AF1',label:'AF1',d:'Sa 04.07. 19:00',o:'Houston (USA)',        info:'Sieger SF1 : Sieger SF4'},
-      {id:'AF2',label:'AF2',d:'Sa 04.07. 23:00',o:'Philadelphia (USA)',   info:'Sieger SF3 : Sieger SF6'},
-      {id:'AF3',label:'AF3',d:'So 05.07. 22:00',o:'New York/NJ (USA)',    info:'Sieger SF2 : Sieger SF5'},
-      {id:'AF4',label:'AF4',d:'Mo 06.07. 12:00',o:'Mexiko-Stadt (MEX)',   info:'Sieger SF7 : Sieger SF8'},
-      {id:'AF5',label:'AF5',d:'Mo 06.07. 21:00',o:'Dallas (USA)',         info:'Sieger SF11 : Sieger SF12'},
-      {id:'AF6',label:'AF6',d:'Di 07.07. 02:00',o:'Seattle (USA)',        info:'Sieger SF9 : Sieger SF10'},
-      {id:'AF7',label:'AF7',d:'Di 07.07. 18:00',o:'Atlanta (USA)',        info:'Sieger SF14 : Sieger SF15'},
-      {id:'AF8',label:'AF8',d:'Di 07.07. 22:00',o:'Vancouver (KAN)',      info:'Sieger SF13 : Sieger SF16'},
+      {id:'AF1',label:'AF1',d:'Sa 04.07. 19:00',o:'Houston (USA)',        info:'Kanada : Marokko',t1:'Kanada',t2:'Marokko'},
+      {id:'AF2',label:'AF2',d:'Sa 04.07. 23:00',o:'Philadelphia (USA)',   info:'Paraguay : Frankreich',t1:'Paraguay',t2:'Frankreich'},
+      {id:'AF3',label:'AF3',d:'So 05.07. 22:00',o:'New York/NJ (USA)',    info:'Brasilien : Norwegen',t1:'Brasilien',t2:'Norwegen'},
+      {id:'AF4',label:'AF4',d:'Mo 06.07. 02:00',o:'Mexiko-Stadt (MEX)',   info:'Mexiko : England',t1:'Mexiko',t2:'England'},
+      {id:'AF5',label:'AF5',d:'Mo 06.07. 21:00',o:'Dallas (USA)',         info:'Portugal : Spanien',t1:'Portugal',t2:'Spanien'},
+      {id:'AF6',label:'AF6',d:'Di 07.07. 02:00',o:'Seattle (USA)',        info:'USA : Belgien',t1:'USA',t2:'Belgien'},
+      {id:'AF7',label:'AF7',d:'Di 07.07. 18:00',o:'Atlanta (USA)',        info:'Argentinien : Ägypten',t1:'Argentinien',t2:'Ägypten'},
+      {id:'AF8',label:'AF8',d:'Di 07.07. 22:00',o:'Vancouver (KAN)',      info:'Schweiz : Kolumbien',t1:'Schweiz',t2:'Kolumbien'},
     ]
   },
   {
@@ -2169,7 +2175,7 @@ function renderAdmKO(){
 
         <!-- Ergebnis / Sieger -->`;
 
-      const isSF=s.id&&s.id.startsWith('SF');
+      const isSF=istErgSpiel(s.id);
       if(isSF){
         // ko.h/ko.g = gewertetes Ergebnis (für 3/1). ko.rh/ko.rg = echter Eingabestand. ko.pen = Elfmeter/Verl.-Sieger
         const rh=(ko.rh!==undefined&&ko.rh!=='')?ko.rh:(ko.h!==undefined&&ko.h!==''?ko.h:'');
@@ -2250,7 +2256,7 @@ async function saveAdmKO(sid){
   const t1=document.getElementById('ko-t1-'+sid).value.trim();
   const t2=document.getElementById('ko-t2-'+sid).value.trim();
   if(!t1||!t2){toast('Beide Teams eingeben','er');return;}
-  const isSF=sid&&sid.startsWith('SF');
+  const isSF=istErgSpiel(sid);
 
   if(isSF){
     const ehEl=document.getElementById('ko-eh-'+sid),egEl=document.getElementById('ko-eg-'+sid);
@@ -2412,12 +2418,11 @@ async function openSchein(nick){
     const ts=subm&&subm.ts?new Date(subm.ts).toLocaleString('de-DE'):'-';
     let label='', spiele=[], typ='';
 
-    if(rundId==='KO_SF'){
-      label='🎯 Sechzehntelfinale'; typ='sf';
-      spiele=KO_RUNDEN.find(r=>r.id==='SF').spiele.map(s=>({...s,t1:s.t1,t2:s.t2}));
-    } else if(rundId.startsWith('KO_')){
-      const r=KO_RUNDEN.find(x=>'KO_'+x.id===rundId);
-      label=r?(r.icon+' '+r.label):rundId; typ='ko';
+    if(rundId.startsWith('KO_')){
+      const rid=rundId.slice(3);
+      const r=KO_RUNDEN.find(x=>x.id===rid);
+      label=r?(r.icon+' '+r.label):rundId;
+      typ=istErgRunde(rid)?'sf':'ko';
       spiele=r?r.spiele.slice():[];
     } else {
       const w=WOCHEN.find(x=>x.id===rundId);
@@ -2490,8 +2495,7 @@ async function toggleFreigabe(nick,rundId,sid,on){
 // Alle noch nicht gestarteten Spiele einer Runde freigeben
 async function releaseAllOpen(nick,rundId){
   let spiele=[];
-  if(rundId==='KO_SF') spiele=KO_RUNDEN.find(r=>r.id==='SF').spiele;
-  else if(rundId.startsWith('KO_')){const r=KO_RUNDEN.find(x=>'KO_'+x.id===rundId);spiele=r?r.spiele:[];}
+  if(rundId.startsWith('KO_')){const r=KO_RUNDEN.find(x=>x.id===rundId.slice(3));spiele=r?r.spiele:[];}
   else {const w=WOCHEN.find(x=>x.id===rundId);spiele=w?ALL_GP.filter(s=>s.dt>=w.von&&s.dt<=w.bis):[];}
 
   const[erg,koE]=await Promise.all([dbGet('ergebnisse'),dbGet('ko_ergebnisse')]);
@@ -2499,8 +2503,11 @@ async function releaseAllOpen(nick,rundId){
   const upd={};
   spiele.forEach(s=>{
     let gestartet=false;
-    if(rundId==='KO_SF'){const k=KOE[s.id]||{};gestartet=k.h!==undefined&&k.h!==''&&k.g!==undefined&&k.g!=='';}
-    else if(rundId.startsWith('KO_')){const k=KOE[s.id]||{};gestartet=!!k.winner;}
+    if(rundId.startsWith('KO_')){
+      const k=KOE[s.id]||{};
+      if(istErgSpiel(s.id))gestartet=k.h!==undefined&&k.h!==''&&k.g!==undefined&&k.g!=='';
+      else gestartet=!!k.winner;
+    }
     else {const e=ERG[s.id];gestartet=(e&&e.h!==undefined&&e.h!=='')||!darfSpielNochGetipptWerden(s);}
     if(!gestartet)upd[s.id]=true;
   });
@@ -2625,7 +2632,7 @@ async function loadSpielerUebersicht(){
   // ===== KO-RUNDEN (Sechzehntelfinale, Achtelfinale, ... Finale) =====
   if(woche==='all'||nurKO){
     KO_RUNDEN.forEach(runde=>{
-      const isSF=runde.id==='SF';
+      const isSF=istErgRunde(runde.id);
       let rPts=0,rEx=0,rTe=0,rWr=0,rKo=0;
       let rowsHtml='';
       let anyData=false;
@@ -3284,7 +3291,7 @@ async function openTippscheinVerlauf(){
       const ko=allKoE[sp.id]||{};
       const t1=ko.team1||sp.t1||null,t2=ko.team2||sp.t2||null,winner=ko.winner||null;
       const hasBoth=t1&&t2;
-      const isSF=sp.id&&sp.id.startsWith('SF');
+      const isSF=istErgSpiel(sp.id);
 
       if(isSF){
         const myT=allKoTS[sp.id]||null;
