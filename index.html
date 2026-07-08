@@ -1143,7 +1143,7 @@ function istErgSpiel(sid){return istErgRunde(spielRunde(sid));}
 // STATE
 // ============================================================
 let CU=null,adminIn=false;
-const APP_VERSION='v68';
+const APP_VERSION='v69';
 // Versions-Badge anzeigen + Cache-Bust: bei neuer Version einmalig hart neu laden
 (function(){
   try{
@@ -2141,12 +2141,12 @@ function renderAdmKO(){
 
   // Info-Box
   html+=`<div style="background:var(--acc-light);border:1px solid rgba(232,168,0,.3);border-radius:8px;padding:11px 14px;margin-bottom:18px;font-size:12px;color:var(--acc-dark);font-weight:500">
-    📋 <strong>Ablauf:</strong> Teams eintragen → Speichern → Sieger anklicken → Speichern. Sobald ein Sieger gesetzt ist, werden die Tipps der Spieler automatisch ausgewertet.
+    📋 <strong>Ablauf:</strong> 1️⃣ Paarung eintragen (Teams) → Speichern, Ergebnis leer lassen. Die Spieler können sofort tippen. 2️⃣ Nach dem Spiel: Endstand eintragen → Speichern. Die Tipps werden automatisch ausgewertet (exakt +3 / Tendenz +1).
   </div>`;
 
   // Hinweis Sechzehntelfinale
   html+=`<div style="background:#7b1fa215;border:1px solid #7b1fa240;border-radius:8px;padding:11px 14px;margin-bottom:18px;font-size:12px;color:#7b1fa2;font-weight:500">
-    🎯 <strong>Sechzehntelfinale:</strong> Die 16 Begegnungen sind bereits hinterlegt und für alle Spieler sichtbar. Du musst nur noch den Sieger anklicken & speichern.
+    🎯 <strong>Sechzehntel- & Achtelfinale:</strong> Die Begegnungen sind bereits hinterlegt. Ab dem Viertelfinale trägst du die Paarungen selbst ein (Schritt 1).
   </div>`;
 
   BRACKET.forEach(runde=>{
@@ -2199,7 +2199,7 @@ function renderAdmKO(){
         const rh=(ko.rh!==undefined&&ko.rh!=='')?ko.rh:(ko.h!==undefined&&ko.h!==''?ko.h:'');
         const rg=(ko.rg!==undefined&&ko.rg!=='')?ko.rg:(ko.g!==undefined&&ko.g!==''?ko.g:'');
         const penWinner=ko.pen||'';
-        html+=`<div style="font-size:10px;color:var(--txt3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">Endergebnis eintragen</div>
+        html+=`<div style="font-size:10px;color:var(--txt3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">Endergebnis <span style="text-transform:none;font-weight:500">(leer lassen um nur die Teams zu speichern)</span></div>
         <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:6px">
           <span style="font-size:12px;font-weight:700;flex:1;text-align:right">${t1||'Team 1'}</span>
           <input class="fi" type="number" min="0" max="99" style="width:50px;text-align:center;font-size:16px;font-weight:700;padding:6px" id="ko-eh-${s.id}" value="${rh}" placeholder="–" oninput="updPenRow('${s.id}')">
@@ -2207,7 +2207,7 @@ function renderAdmKO(){
           <input class="fi" type="number" min="0" max="99" style="width:50px;text-align:center;font-size:16px;font-weight:700;padding:6px" id="ko-eg-${s.id}" value="${rg}" placeholder="–" oninput="updPenRow('${s.id}')">
           <span style="font-size:12px;font-weight:700;flex:1;text-align:left">${t2||'Team 2'}</span>
         </div>
-        <div style="font-size:10px;color:var(--txt3);text-align:center;margin-bottom:8px">Trag den echten Endstand ein (auch z.B. 5:4 nach Elfmeter).</div>
+        <div style="font-size:10px;color:var(--txt3);text-align:center;margin-bottom:8px">1️⃣ Teams eintragen & speichern (Ergebnis leer lassen) · 2️⃣ Nach dem Spiel: echten Endstand eintragen & speichern</div>
         <div id="ko-penrow-${s.id}" style="${(+rh===+rg&&rh!==''&&rg!=='')?'':'display:none;'}background:var(--acc-light);border:1px solid rgba(232,168,0,.3);border-radius:8px;padding:9px 11px;margin-bottom:8px">
           <div style="font-size:11px;font-weight:700;color:var(--acc-dark);margin-bottom:6px">⚽ Unentschieden — wer kommt weiter (Verl./Elfmeter)?</div>
           <div style="display:flex;gap:6px">
